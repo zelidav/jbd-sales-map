@@ -33,8 +33,11 @@ html,body{margin:0;height:100%;font-family:-apple-system,Segoe UI,Roboto,Helveti
 .b-t1{background:#8e2b2b}.b-t2{background:#b5742a}.b-t3{background:#5b6e57}
 #main{flex:1;position:relative}#map{position:absolute;inset:0}
 #route{position:absolute;top:10px;right:10px;width:300px;background:#fff;border:1px solid #ccc;border-radius:8px;box-shadow:0 2px 10px rgba(0,0,0,.15);font-size:12px;z-index:1000;max-height:80vh;display:flex;flex-direction:column}
-#route h3{margin:0;padding:8px 10px;background:var(--ink);color:#fff;font-size:13px;border-radius:8px 8px 0 0;display:flex;justify-content:space-between;align-items:center}
+#route h3{margin:0;padding:8px 10px;background:var(--ink);color:#fff;font-size:13px;border-radius:8px;display:flex;justify-content:space-between;align-items:center;gap:6px;cursor:pointer}
+#route.collapsed{width:auto}
+#route.collapsed .rbody{display:none}
 #route .rbody{padding:8px 10px;overflow-y:auto}
+#route h3 .hbtn{background:rgba(255,255,255,.15);border:none;color:#fff;border-radius:5px;padding:2px 8px;font-size:13px;cursor:pointer}
 #route ol{margin:4px 0;padding-left:20px}#route li{margin:3px 0}
 #route .btns{display:flex;gap:6px;flex-wrap:wrap;margin-top:6px}
 button{font:inherit;padding:6px 10px;border:1px solid var(--ink);background:var(--ink);color:#fff;border-radius:6px;cursor:pointer;font-size:12px}
@@ -68,8 +71,8 @@ button.ghost{background:#fff;color:var(--ink)}
   </div>
   <div id="main">
     <div id="map"></div>
-    <div id="route">
-      <h3>🧭 Route <span><button id="optimize" class="ghost" style="padding:2px 7px">Optimize</button></span></h3>
+    <div id="route" class="collapsed">
+      <h3 id="rhead"><span>🧭 Route <span id="rcount"></span></span><span><button id="optimize" class="hbtn" title="Optimize order">Optimize</button> <button id="rtoggle" class="hbtn" title="Show/hide">▸</button></span></h3>
       <div class="rbody">
         <div id="rstart" style="font-size:11px;color:#666">Start: nearest-neighbor from first stop (or “Near me”).</div>
         <ol id="rlist"></ol>
@@ -172,10 +175,14 @@ function render(){
     L2.appendChild(d);
   });
 }
-window.addRoute=function(id){const a=byId[id];if(!a)return;if(!route.includes(a)){route.push(a);drawRoute();}};
+function setCollapsed(c){const r=document.getElementById('route');r.classList.toggle('collapsed',c);document.getElementById('rtoggle').textContent=c?'▸':'▾';}
+document.getElementById('rtoggle').onclick=e=>{e.stopPropagation();setCollapsed(!document.getElementById('route').classList.contains('collapsed'));};
+document.getElementById('rhead').onclick=e=>{if(e.target.id==='optimize'||e.target.id==='rtoggle')return;setCollapsed(!document.getElementById('route').classList.contains('collapsed'));};
+window.addRoute=function(id){const a=byId[id];if(!a)return;if(!route.includes(a)){route.push(a);drawRoute();setCollapsed(false);}};
 function drawRoute(){
   const ol=document.getElementById('rlist');ol.innerHTML='';
   route.forEach((a,i)=>{const li=document.createElement('li');li.innerHTML=`${a.name} <a href="#" onclick="rmRoute(${i});return false;" style="color:#b00">✕</a>`;ol.appendChild(li);});
+  document.getElementById('rcount').textContent=route.length?`(${route.length})`:'';
   if(routeLine)map.removeLayer(routeLine);
   if(route.length>1){routeLine=L.polyline(route.map(a=>[a.lat,a.lng]),{color:'#8e2b2b',weight:3,dashArray:'6 6'}).addTo(map);
     let d=0;for(let i=1;i<route.length;i++)d+=dist(route[i-1],route[i]);
@@ -183,7 +190,7 @@ function drawRoute(){
   } else document.getElementById('rdist').textContent='';
 }
 window.rmRoute=function(i){route.splice(i,1);drawRoute();};
-document.getElementById('rclear').onclick=()=>{route=[];drawRoute();};
+document.getElementById('rclear').onclick=()=>{route=[];if(routeLine){map.removeLayer(routeLine);routeLine=null;}drawRoute();setCollapsed(true);};
 document.getElementById('optimize').onclick=()=>{
   if(route.length<3)return;
   let start=userLoc?{lat:userLoc.lat,lng:userLoc.lng}:route[0];
