@@ -71,18 +71,6 @@ button.ghost{background:#fff;color:var(--ink)}
   </div>
   <div id="main">
     <div id="map"></div>
-    <div id="route" class="collapsed">
-      <h3 id="rhead"><span>🧭 Route <span id="rcount"></span></span><span><button id="optimize" class="hbtn" title="Optimize order">Optimize</button> <button id="rtoggle" class="hbtn" title="Show/hide">▸</button></span></h3>
-      <div class="rbody">
-        <div id="rstart" style="font-size:11px;color:#666">Start: nearest-neighbor from first stop (or “Near me”).</div>
-        <ol id="rlist"></ol>
-        <div id="rdist" style="font-weight:600"></div>
-        <div class="btns">
-          <button id="gmaps">Open in Google Maps</button>
-          <button id="rclear" class="ghost">Clear</button>
-        </div>
-      </div>
-    </div>
     <div class="legend">
       <div><span class="dot" style="background:#1f7a44"></span>Customer</div>
       <div><span class="dot" style="background:#e08a1e"></span>Prospect</div>
@@ -99,13 +87,13 @@ const DATA = [{"name": "7 Leaf Clover", "lat": 40.716212708761, "lng": -73.96254
 const lifeColor=l=>({Customer:'#1f7a44',Prospect:'#e08a1e','Closed Won':'#2f6fb0',Lead:'#8a8f99'}[l]||'#8a8f99');
 const tierBadge=t=>t?`<span class="badge b-${t==='Tier 1'?'t1':t==='Tier 2'?'t2':'t3'}">${t}</span>`:'';
 const lifeBadge=l=>`<span class="badge b-${l==='Customer'?'cust':l==='Prospect'?'prosp':l==='Closed Won'?'won':'lead'}">${l}</span>`;
-let userLoc=null, route=[];
+let userLoc=null;
 
 const map=L.map('map',{zoomControl:true}).setView([42.6,-75.5],7);
 L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png',{maxZoom:19,attribution:'© OpenStreetMap © CARTO'}).addTo(map);
 const cluster=L.markerClusterGroup({maxClusterRadius:45,spiderfyOnMaxZoom:true});
 map.addLayer(cluster);
-let routeLine=null, userMarker=null;
+let userMarker=null;
 
 // filter state
 const F={life:new Set(),tier:new Set(),grp:new Set(),size:new Set(),dfly:false,q:'',tgtonly:false};
@@ -143,8 +131,9 @@ function popupHtml(a){
   if(a.contact)h+=`<div class="row"><span class="k">Contact:</span> ${a.contact}</div>`;
   if(a.nabis)h+=`<div class="row"><span class="k">Nabis:</span> ${a.nabis}</div>`;
   if(a.note)h+=`<div class="row"><span class="k">Note:</span> ${a.note}</div>`;
-  const g=`https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(a.addr+', '+a.city+' NY '+a.zip)}`;
-  h+=`<div class="row" style="margin-top:6px"><a href="${g}" target="_blank">▶ Directions</a> &nbsp;|&nbsp; <a href="#" onclick="addRoute('${a.license||a.name.replace(/'/g,"")}');return false;">＋ Add to route</a></div>`;
+  const q=encodeURIComponent(`${a.name}, ${a.addr}, ${a.city}, NY ${a.zip}`);
+  const g=`https://www.google.com/maps/search/?api=1&query=${q}`;
+  h+=`<div class="row" style="margin-top:8px"><a href="${g}" target="_blank" rel="noopener" style="display:inline-block;background:#1f7a44;color:#fff;padding:7px 14px;border-radius:6px;text-decoration:none;font-weight:600">📍 Open in Google Maps</a></div>`;
   if(a.web)h+=`<div class="row"><a href="${a.web.startsWith('http')?a.web:'https://'+a.web}" target="_blank">${a.web}</a></div>`;
   return h+`</div>`;
 }
@@ -175,38 +164,6 @@ function render(){
     L2.appendChild(d);
   });
 }
-function setCollapsed(c){const r=document.getElementById('route');r.classList.toggle('collapsed',c);document.getElementById('rtoggle').textContent=c?'▸':'▾';}
-document.getElementById('rtoggle').onclick=e=>{e.stopPropagation();setCollapsed(!document.getElementById('route').classList.contains('collapsed'));};
-document.getElementById('rhead').onclick=e=>{if(e.target.id==='optimize'||e.target.id==='rtoggle')return;setCollapsed(!document.getElementById('route').classList.contains('collapsed'));};
-window.addRoute=function(id){const a=byId[id];if(!a)return;if(!route.includes(a)){route.push(a);drawRoute();setCollapsed(false);}};
-function drawRoute(){
-  const ol=document.getElementById('rlist');ol.innerHTML='';
-  route.forEach((a,i)=>{const li=document.createElement('li');li.innerHTML=`${a.name} <a href="#" onclick="rmRoute(${i});return false;" style="color:#b00">✕</a>`;ol.appendChild(li);});
-  document.getElementById('rcount').textContent=route.length?`(${route.length})`:'';
-  if(routeLine)map.removeLayer(routeLine);
-  if(route.length>1){routeLine=L.polyline(route.map(a=>[a.lat,a.lng]),{color:'#8e2b2b',weight:3,dashArray:'6 6'}).addTo(map);
-    let d=0;for(let i=1;i<route.length;i++)d+=dist(route[i-1],route[i]);
-    document.getElementById('rdist').textContent=`${route.length} stops · ~${d.toFixed(1)} mi (straight-line)`;
-  } else document.getElementById('rdist').textContent='';
-}
-window.rmRoute=function(i){route.splice(i,1);drawRoute();};
-document.getElementById('rclear').onclick=()=>{route=[];if(routeLine){map.removeLayer(routeLine);routeLine=null;}drawRoute();setCollapsed(true);};
-document.getElementById('optimize').onclick=()=>{
-  if(route.length<3)return;
-  let start=userLoc?{lat:userLoc.lat,lng:userLoc.lng}:route[0];
-  let pool=route.slice(),ordered=[],cur=start;
-  while(pool.length){let bi=0,bd=1e9;pool.forEach((p,i)=>{const dd=dist(cur,p);if(dd<bd){bd=dd;bi=i;}});cur=pool[bi];ordered.push(cur);pool.splice(bi,1);}
-  route=ordered;drawRoute();
-};
-document.getElementById('gmaps').onclick=()=>{
-  if(!route.length)return;
-  const pts=route.map(a=>encodeURIComponent(a.addr+', '+a.city+' NY '+a.zip));
-  let url='https://www.google.com/maps/dir/?api=1';
-  if(userLoc)url+='&origin='+userLoc.lat+','+userLoc.lng;
-  url+='&destination='+pts[pts.length-1];
-  if(pts.length>1)url+='&waypoints='+pts.slice(0,-1).join('%7C');
-  window.open(url,'_blank');
-};
 document.getElementById('near').onclick=()=>{
   navigator.geolocation.getCurrentPosition(p=>{
     userLoc={lat:p.coords.latitude,lng:p.coords.longitude};
