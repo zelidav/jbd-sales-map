@@ -46,13 +46,39 @@ button.ghost{background:#fff;color:var(--ink)}
 .dot{display:inline-block;width:10px;height:10px;border-radius:50%;margin-right:5px;vertical-align:middle}
 .lp b{font-size:13px}.lp .row{margin:3px 0;font-size:12px}.lp .k{color:#888}
 .tools{padding:8px 14px;border-bottom:1px solid #e2e4df;display:flex;gap:6px;flex-wrap:wrap;background:#fff}
-@media(max-width:760px){#side{width:100%;min-width:0;position:absolute;z-index:1200;height:50vh;bottom:0;top:auto}#main{height:50vh}}
+#sheetclose{display:none}
+#mobtoggle{display:none}
+#mobbar{display:none}
+@media(max-width:760px){
+  #app{flex-direction:column}
+  #main{height:100vh;width:100%}
+  #map{inset:0}
+  #side{position:fixed;left:0;right:0;bottom:0;top:auto;width:100%;min-width:0;height:80vh;z-index:1500;
+    border-right:none;border-top-left-radius:16px;border-top-right-radius:16px;
+    box-shadow:0 -6px 24px rgba(0,0,0,.3);transform:translateY(100%);transition:transform .3s ease}
+  #side.open{transform:translateY(0)}
+  #brand{border-top-left-radius:16px;border-top-right-radius:16px;position:relative;padding:14px 16px}
+  #brand h1{font-size:15px}
+  #sheetclose{display:block;position:absolute;right:12px;top:11px;background:rgba(255,255,255,.18);border:none;color:#fff;font-size:18px;border-radius:8px;padding:4px 12px}
+  #filters{max-height:34vh}
+  .chip{padding:7px 12px;font-size:14px;margin:3px 4px 3px 0}
+  .card{padding:13px 16px}
+  .card .nm{font-size:15px}
+  .tools button{padding:9px 12px;font-size:14px;flex:1}
+  .legend{bottom:84px;left:10px;padding:7px 9px;font-size:10px}
+  #q{padding:11px 12px;font-size:16px}
+  /* floating button to open the sheet */
+  #mobtoggle{display:flex;align-items:center;gap:8px;position:fixed;bottom:18px;left:50%;transform:translateX(-50%);
+    z-index:1400;background:var(--ink);color:#fff;border:none;border-radius:26px;padding:13px 22px;font-size:15px;
+    font-weight:600;box-shadow:0 4px 16px rgba(0,0,0,.35)}
+  #side.open ~ #mobtoggle, #side.open + #main #mobtoggle{display:none}
+}
 </style>
 </head>
 <body>
 <div id="app">
   <div id="side">
-    <div id="brand"><h1>JEROME BAKER · NY SALES MAP</h1><div class="sub">Targets · Accounts · Routing</div></div>
+    <div id="brand"><h1>JEROME BAKER · NY SALES MAP</h1><div class="sub">Targets · Accounts · Territory</div><button id="sheetclose" aria-label="Close">✕</button></div>
     <div class="tools">
       <button id="near" class="ghost">📍 Near me</button>
       <button id="tgtonly" class="ghost">★ Targets only</button>
@@ -79,6 +105,7 @@ button.ghost{background:#fff;color:var(--ink)}
       <div><span class="dot" style="background:#8e2b2b;border:2px solid #c9a24b"></span>★ Target</div>
     </div>
   </div>
+  <button id="mobtoggle">🗺️ Accounts &amp; Filters</button>
 </div>
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script src="https://unpkg.com/leaflet.markercluster@1.5.3/dist/leaflet.markercluster.js"></script>
@@ -94,6 +121,10 @@ L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png',{ma
 const cluster=L.markerClusterGroup({maxClusterRadius:45,spiderfyOnMaxZoom:true});
 map.addLayer(cluster);
 let userMarker=null;
+const sideEl=document.getElementById('side');
+const isMobile=()=>window.innerWidth<=760;
+document.getElementById('mobtoggle').onclick=()=>sideEl.classList.add('open');
+document.getElementById('sheetclose').onclick=()=>sideEl.classList.remove('open');
 
 // filter state
 const F={life:new Set(),tier:new Set(),grp:new Set(),size:new Set(),dfly:false,q:'',tgtonly:false};
@@ -160,7 +191,7 @@ function render(){
     const d=document.createElement('div');d.className='card';
     d.innerHTML=`<div class="nm">${tierBadge(a.tier)}${a.name}</div>
       <div class="meta">${lifeBadge(a.life)} ${a.city}${a.neighborhood?' · '+a.neighborhood:''} · ${a.size}${userLoc?' · '+dist(userLoc,a).toFixed(1)+' mi':''}</div>`;
-    d.onclick=()=>{map.setView([a.lat,a.lng],14);const mk=markerFor(a);cluster.addLayer(mk);mk.openPopup();};
+    d.onclick=()=>{if(isMobile())sideEl.classList.remove('open');map.setView([a.lat,a.lng],14);const mk=markerFor(a);cluster.addLayer(mk);mk.openPopup();};
     L2.appendChild(d);
   });
 }
