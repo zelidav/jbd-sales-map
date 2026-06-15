@@ -61,6 +61,13 @@ label.tog{display:inline-flex;align-items:center;gap:5px;font-size:12px;cursor:p
 #botsend:disabled{opacity:.5;cursor:default}
 .botchips{padding:0 9px 9px;background:#fff;display:flex;gap:6px;flex-wrap:wrap}
 .botchips button{background:#eef3ee;border:1px solid #d6ddd6;border-radius:14px;padding:5px 9px;font-size:11px;cursor:pointer;color:var(--ink)}
+#rstart{display:none;padding:7px 12px;border-bottom:1px solid #f0f0f0;background:#f8f9f7}
+#rstart .slbl{font-size:11px;color:#555;margin-bottom:5px}
+#rstart .slbl b{color:#14241a}
+#rstart .sbtns{display:flex;gap:5px;flex-wrap:wrap}
+#rstart .sbtns button{flex:1;min-width:88px;padding:8px 6px;font-size:11px;border:1px solid var(--ink);background:#fff;color:var(--ink);border-radius:6px;cursor:pointer;font-weight:600;touch-action:manipulation}
+#rstart .sbtns button#optroute{background:var(--ink);color:#fff}
+.rtotal{padding:4px 12px;font-size:11px;color:#1f7a44;font-weight:600}
 /* mobile controls (hidden on desktop) */
 #sheetclose{display:none;position:absolute;top:9px;right:10px;background:rgba(255,255,255,.18);border:none;color:#fff;width:36px;height:36px;border-radius:8px;font-size:24px;line-height:1;cursor:pointer;align-items:center;justify-content:center;z-index:5;touch-action:manipulation}
 #mobtoggle{display:none;position:absolute;z-index:1500;background:var(--ink);color:#fff;border:none;border-radius:26px;padding:13px 20px;font-size:14px;font-weight:700;box-shadow:0 4px 16px rgba(0,0,0,.4);align-items:center;gap:8px;cursor:pointer;touch-action:manipulation}
@@ -98,7 +105,10 @@ label.tog{display:inline-flex;align-items:center;gap:5px;font-size:12px;cursor:p
 <div id="stats"></div><div id="list"></div></div>
 <div id="main"><div id="map"></div>
 <button id="mobtoggle">☰ <span id="mobcount">Stores &amp; filters</span></button>
-<div id="route"><h3>Route builder (<span id="rcount">0</span>)</h3><div id="rstops"></div>
+<div id="route"><h3>Route builder (<span id="rcount">0</span>)</h3>
+<div id="rstart"><div class="slbl">📍 Start: <b id="startlabel">not set</b></div>
+ <div class="sbtns"><button id="useloc">📍 My location</button><button id="setaddr">✏️ Address</button><button id="optroute">⚡ Optimize</button></div></div>
+<div id="rstops"></div><div id="rtotal" class="rtotal"></div>
 <div class="act"><a id="gmap" href="#" target="_blank">Open in Google Maps</a><button id="rclear">Clear</button></div></div>
 <div class="leg" id="leg"></div>
 <button id="botbtn">💬 Ask the <span class="g">Sales Bot</span></button>
@@ -153,14 +163,51 @@ function render(){cluster.clearLayers();markers={};var vis=visible();var listEl=
   card.onclick=function(){if(window.innerWidth<=760)document.getElementById('side').classList.remove('open');map.setView([d.lat,d.lng],14);var mk=markers[d.lic||d.n];if(mk)mk.openPopup();};
   card.querySelector('.addr').onclick=function(e){e.stopPropagation();addRoute(d.lic||d.n,d);};listEl.appendChild(card);});}
 window.addRoute=function(id,d){d=d||DATA.find(x=>(x.lic||x.n)==id);if(!d)return;if(route.find(r=>(r.lic||r.n)==id))return;route.push(d);drawRoute();};
-var routeLine=null;
+var routeLine=null,startPt=null,startMarker=null;
+function hav(a,b){var R=6371,toR=function(x){return x*Math.PI/180;};var dLat=toR(b[0]-a[0]),dLng=toR(b[1]-a[1]);var s=Math.sin(dLat/2)*Math.sin(dLat/2)+Math.cos(toR(a[0]))*Math.cos(toR(b[0]))*Math.sin(dLng/2)*Math.sin(dLng/2);return 2*R*Math.asin(Math.sqrt(s));}
+function pathLen(start,arr){var t=0,cur=start;for(var i=0;i<arr.length;i++){t+=hav(cur,[arr[i].lat,arr[i].lng]);cur=[arr[i].lat,arr[i].lng];}return t;}
+function optimizeOrder(){if(route.length<2)return;
+ var start=startPt?[startPt.lat,startPt.lng]:[route[0].lat,route[0].lng];
+ var rem=route.slice(),ord=[],cur=start; // nearest-neighbor seed
+ while(rem.length){var bi=0,bd=Infinity;for(var i=0;i<rem.length;i++){var dd=hav(cur,[rem[i].lat,rem[i].lng]);if(dd<bd){bd=dd;bi=i;}}cur=[rem[bi].lat,rem[bi].lng];ord.push(rem.splice(bi,1)[0]);}
+ var improved=true,guard=0; // 2-opt refine
+ while(improved&&guard++<50){improved=false;
+  for(var i=0;i<ord.length-1;i++)for(var k=i+1;k<ord.length;k++){
+   var na=ord.slice(0,i).concat(ord.slice(i,k+1).reverse(),ord.slice(k+1));
+   if(pathLen(start,na)+1e-9<pathLen(start,ord)){ord=na;improved=true;}}}
+ route=ord;drawRoute();}
+function setStart(lat,lng,label){startPt={lat:lat,lng:lng,label:label};optimizeOrder();drawRoute();
+ if(window.innerWidth<=760)document.getElementById('side').classList.remove('open');}
+function useMyLocation(){if(!navigator.geolocation){alert('Location is not available on this device/browser.');return;}
+ var b=document.getElementById('useloc'),old=b.textContent;b.textContent='Locating…';b.disabled=true;
+ navigator.geolocation.getCurrentPosition(
+  function(p){b.textContent=old;b.disabled=false;setStart(p.coords.latitude,p.coords.longitude,'My location');},
+  function(err){b.textContent=old;b.disabled=false;alert('Could not get your location: '+err.message+'. Tip: allow location access, or use the Address option.');},
+  {enableHighAccuracy:true,timeout:10000,maximumAge:60000});}
+function setStartByAddress(){var a=prompt('Starting address or place (e.g. "Albany, NY", a depot, or a home base):');if(!a)return;
+ fetch('https://nominatim.openstreetmap.org/search?format=json&limit=1&q='+encodeURIComponent(a)).then(function(r){return r.json();}).then(function(j){
+  if(!j||!j.length){alert('Could not find that address — try adding a city/state.');return;}
+  setStart(parseFloat(j[0].lat),parseFloat(j[0].lon),j[0].display_name.split(',').slice(0,2).join(',').trim());
+ }).catch(function(){alert('Address lookup failed — check your connection.');});}
 function drawRoute(){var rs=document.getElementById('rstops');rs.innerHTML='';document.getElementById('rcount').textContent=route.length;
  document.getElementById('route').style.display=(route.length||window.innerWidth>760)?'flex':'none';
+ var sc=document.getElementById('rstart');if(sc)sc.style.display=route.length>=2?'block':'none';
+ var sl=document.getElementById('startlabel');if(sl)sl.textContent=startPt?startPt.label:'not set — uses first stop';
  route.forEach(function(d,i){var e=document.createElement('div');e.className='rstop';e.innerHTML='<span>'+(i+1)+'. '+d.n+'</span><small>✕</small>';
   e.querySelector('small').onclick=function(){route.splice(i,1);drawRoute();};rs.appendChild(e);});
- if(routeLine)map.removeLayer(routeLine);if(route.length>1){routeLine=L.polyline(route.map(d=>[d.lat,d.lng]),{color:'#14241a',weight:3,opacity:.6,dashArray:'6,6'}).addTo(map);}
- document.getElementById('gmap').href='https://www.google.com/maps/dir/'+route.map(d=>d.lat+','+d.lng).join('/');}
-document.getElementById('rclear').onclick=function(){route=[];drawRoute();};
+ var td=document.getElementById('rtotal');
+ if(td){if(route.length>=2){var st=startPt?[startPt.lat,startPt.lng]:[route[0].lat,route[0].lng];var km=pathLen(st,startPt?route:route.slice(1));td.textContent='≈ '+(km*0.621371).toFixed(1)+' mi'+(startPt?' from start':' (set a start for door-to-door)');}else td.textContent='';}
+ if(startMarker){map.removeLayer(startMarker);startMarker=null;}
+ if(startPt){startMarker=L.marker([startPt.lat,startPt.lng],{icon:L.divIcon({className:'',html:'<div style="background:#2f6fb0;color:#fff;border:2px solid #fff;border-radius:50%;width:22px;height:22px;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;box-shadow:0 0 4px rgba(0,0,0,.5)">S</div>',iconSize:[22,22]})}).addTo(map);}
+ if(routeLine)map.removeLayer(routeLine);
+ var pts=route.map(function(d){return [d.lat,d.lng];});if(startPt)pts.unshift([startPt.lat,startPt.lng]);
+ if(pts.length>1){routeLine=L.polyline(pts,{color:'#14241a',weight:3,opacity:.6,dashArray:'6,6'}).addTo(map);}
+ var origin=startPt?startPt.lat+','+startPt.lng+'/':'';
+ document.getElementById('gmap').href='https://www.google.com/maps/dir/'+origin+route.map(function(d){return d.lat+','+d.lng;}).join('/');}
+document.getElementById('rclear').onclick=function(){route=[];startPt=null;drawRoute();};
+document.getElementById('useloc').onclick=useMyLocation;
+document.getElementById('setaddr').onclick=setStartByAddress;
+document.getElementById('optroute').onclick=function(){if(route.length<2){alert('Add at least 2 stops first.');return;}optimizeOrder();};
 document.getElementById('leg').innerHTML=ROLES.map(r=>'<div><span style="background:'+COLORS[r]+'"></span>'+r+'</div>').join('')+'<div style="margin-top:3px;color:#666">D# = Pistil decile (1=top)</div>';
 
 /* ============ Product mix (from order data) ============ */
