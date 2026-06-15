@@ -62,26 +62,28 @@ label.tog{display:inline-flex;align-items:center;gap:5px;font-size:12px;cursor:p
 .botchips{padding:0 9px 9px;background:#fff;display:flex;gap:6px;flex-wrap:wrap}
 .botchips button{background:#eef3ee;border:1px solid #d6ddd6;border-radius:14px;padding:5px 9px;font-size:11px;cursor:pointer;color:var(--ink)}
 /* mobile controls (hidden on desktop) */
-#sheetclose{display:none;position:absolute;top:9px;right:10px;background:rgba(255,255,255,.18);border:none;color:#fff;width:32px;height:32px;border-radius:8px;font-size:22px;line-height:1;cursor:pointer;align-items:center;justify-content:center;z-index:3}
-#mobtoggle{display:none;position:absolute;bottom:16px;left:16px;z-index:1200;background:var(--ink);color:#fff;border:none;border-radius:24px;padding:11px 16px;font-size:13px;font-weight:600;box-shadow:0 3px 12px rgba(0,0,0,.32);align-items:center;gap:7px;cursor:pointer}
+#sheetclose{display:none;position:absolute;top:9px;right:10px;background:rgba(255,255,255,.18);border:none;color:#fff;width:36px;height:36px;border-radius:8px;font-size:24px;line-height:1;cursor:pointer;align-items:center;justify-content:center;z-index:5;touch-action:manipulation}
+#mobtoggle{display:none;position:absolute;z-index:1500;background:var(--ink);color:#fff;border:none;border-radius:26px;padding:13px 20px;font-size:14px;font-weight:700;box-shadow:0 4px 16px rgba(0,0,0,.4);align-items:center;gap:8px;cursor:pointer;touch-action:manipulation}
 @media(max-width:760px){
   #app{flex-direction:column}
   #main{position:fixed;inset:0;width:100%;height:100%}
   #side{position:fixed;left:0;right:0;bottom:0;top:auto;width:100%;min-width:0;height:82vh;
-    z-index:1400;border-right:none;border-top-left-radius:18px;border-top-right-radius:18px;
+    z-index:1600;border-right:none;border-top-left-radius:18px;border-top-right-radius:18px;
     box-shadow:0 -8px 28px rgba(0,0,0,.35);transform:translateY(100%);transition:transform .3s ease;will-change:transform}
   #side.open{transform:translateY(0)}
   #side::before{content:"";position:absolute;top:7px;left:50%;transform:translateX(-50%);width:42px;height:4px;border-radius:3px;background:rgba(255,255,255,.55);z-index:4}
-  #brand{position:relative;border-top-left-radius:18px;border-top-right-radius:18px;padding:16px 50px 12px 16px}
+  #brand{position:relative;border-top-left-radius:18px;border-top-right-radius:18px;padding:16px 52px 12px 16px}
   #brand h1{font-size:15px}
   #filters{max-height:42vh}
   #filters input{font-size:16px}
   .chip{padding:6px 12px;font-size:13px}
   .card{padding:12px 14px}
   #sheetclose{display:flex}
-  #mobtoggle{display:flex}
-  #bot{width:100%;height:100%;bottom:0;right:0;border-radius:0;z-index:1600}
-  #botbtn{bottom:16px;right:16px;padding:11px 15px}
+  #mobtoggle{display:inline-flex;left:50%;transform:translateX(-50%);bottom:calc(20px + env(safe-area-inset-bottom,0px))}
+  #leg{display:none}
+  #route{left:8px;right:8px;width:auto;top:8px;max-height:40vh}
+  #botbtn{bottom:calc(18px + env(safe-area-inset-bottom,0px));right:14px;padding:11px 15px;z-index:1500}
+  #bot{width:100%;height:100%;bottom:0;right:0;border-radius:0;z-index:1700}
   .leaflet-popup-content{max-width:78vw}
 }
 </style></head><body><div id="app">
@@ -153,6 +155,7 @@ function render(){cluster.clearLayers();markers={};var vis=visible();var listEl=
 window.addRoute=function(id,d){d=d||DATA.find(x=>(x.lic||x.n)==id);if(!d)return;if(route.find(r=>(r.lic||r.n)==id))return;route.push(d);drawRoute();};
 var routeLine=null;
 function drawRoute(){var rs=document.getElementById('rstops');rs.innerHTML='';document.getElementById('rcount').textContent=route.length;
+ document.getElementById('route').style.display=(route.length||window.innerWidth>760)?'flex':'none';
  route.forEach(function(d,i){var e=document.createElement('div');e.className='rstop';e.innerHTML='<span>'+(i+1)+'. '+d.n+'</span><small>✕</small>';
   e.querySelector('small').onclick=function(){route.splice(i,1);drawRoute();};rs.appendChild(e);});
  if(routeLine)map.removeLayer(routeLine);if(route.length>1){routeLine=L.polyline(route.map(d=>[d.lat,d.lng]),{color:'#14241a',weight:3,opacity:.6,dashArray:'6,6'}).addTo(map);}
@@ -295,6 +298,7 @@ botin.addEventListener('input',function(){this.style.height='auto';this.style.he
 var sideEl=document.getElementById('side');
 document.getElementById('mobtoggle').onclick=function(){sideEl.classList.add('open');};
 document.getElementById('sheetclose').onclick=function(){sideEl.classList.remove('open');};
+drawRoute(); // set initial route-panel visibility (hidden on mobile when empty)
 
 render(); // run last: needs FAMCOL + mix helpers (above) and attaches after bot handlers
 </script></body></html>
