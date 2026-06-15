@@ -46,7 +46,8 @@ label.tog{display:inline-flex;align-items:center;gap:5px;font-size:12px;cursor:p
 #botmsgs{flex:1;overflow-y:auto;padding:12px;background:#f6f7f5;font-size:13px;line-height:1.5}
 .bm{margin:0 0 12px;display:flex}
 .bm.u{justify-content:flex-end}
-.bm .bub{max-width:85%;padding:8px 11px;border-radius:12px;white-space:normal;word-wrap:break-word}
+.bm .bub{max-width:85%;padding:8px 11px;border-radius:12px;white-space:normal;word-wrap:break-word;overflow-wrap:anywhere;box-sizing:border-box}
+.bm .bub table{display:block;overflow-x:auto;max-width:100%}
 .bm.u .bub{background:var(--ink);color:#fff;border-bottom-right-radius:3px}
 .bm.a .bub{background:#fff;border:1px solid #e2e4df;border-bottom-left-radius:3px}
 .bm .bub b{font-weight:700}.bm .bub code{background:#eef0ec;padding:1px 4px;border-radius:4px;font-size:12px}
@@ -90,7 +91,9 @@ label.tog{display:inline-flex;align-items:center;gap:5px;font-size:12px;cursor:p
   #leg{display:none}
   #route{left:8px;right:8px;width:auto;top:8px;max-height:40vh}
   #botbtn{bottom:calc(18px + env(safe-area-inset-bottom,0px));right:14px;padding:11px 15px;z-index:1500}
-  #bot{width:100%;height:100%;bottom:0;right:0;border-radius:0;z-index:1700}
+  #bot{position:fixed;inset:0;left:0;right:0;top:0;bottom:0;width:100%;height:100vh;height:100dvh;max-width:none;max-height:none;border-radius:0;z-index:1700}
+  #botmsgs{overscroll-behavior:contain;-webkit-overflow-scrolling:touch}
+  #botq{padding-bottom:calc(9px + env(safe-area-inset-bottom,0px))}
   .leaflet-popup-content{max-width:78vw}
 }
 </style></head><body><div id="app">
@@ -160,7 +163,10 @@ function render(){cluster.clearLayers();markers={};var vis=visible();var listEl=
  vis.slice(0,400).forEach(function(d){var card=document.createElement('div');card.className='card';
   var sub=d.role.indexOf('Dragonfly')==0?(d.days!=null?d.days+'d since order'+(d.rev!=null?' · $'+d.rev.toLocaleString():''):''):(d.tier||d.role);
   card.innerHTML='<div class="nm">'+d.n+' '+decTag(d)+'</div><div class="meta"><span class="badge" style="background:'+COLORS[d.role]+'">'+d.role+'</span>'+(d.c||'')+(d.nb?' · '+d.nb:'')+'<br>'+sub+mixTag(d.lic)+'</div><div class="addr" title="add to route">＋</div>';
-  card.onclick=function(){if(window.innerWidth<=760)document.getElementById('side').classList.remove('open');map.setView([d.lat,d.lng],14);var mk=markers[d.lic||d.n];if(mk)mk.openPopup();};
+  card.onclick=function(){if(window.innerWidth<=760)document.getElementById('side').classList.remove('open');
+   var mk=markers[d.lic||d.n];
+   if(mk&&cluster.zoomToShowLayer){cluster.zoomToShowLayer(mk,function(){mk.openPopup();});}
+   else{map.setView([d.lat,d.lng],14);if(mk)mk.openPopup();}};
   card.querySelector('.addr').onclick=function(e){e.stopPropagation();addRoute(d.lic||d.n,d);};listEl.appendChild(card);});}
 window.addRoute=function(id,d){d=d||DATA.find(x=>(x.lic||x.n)==id);if(!d)return;if(route.find(r=>(r.lic||r.n)==id))return;route.push(d);drawRoute();};
 var routeLine=null,startPt=null,startMarker=null;
