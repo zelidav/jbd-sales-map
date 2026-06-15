@@ -135,7 +135,6 @@ function drawRoute(){var rs=document.getElementById('rstops');rs.innerHTML='';do
  document.getElementById('gmap').href='https://www.google.com/maps/dir/'+route.map(d=>d.lat+','+d.lng).join('/');}
 document.getElementById('rclear').onclick=function(){route=[];drawRoute();};
 document.getElementById('leg').innerHTML=ROLES.map(r=>'<div><span style="background:'+COLORS[r]+'"></span>'+r+'</div>').join('')+'<div style="margin-top:3px;color:#666">D# = Pistil decile (1=top)</div>';
-render();
 
 /* ============ Product mix (from order data) ============ */
 var FAMCOL={Flower:'#3f7a44',Vape:'#2f6fb0',Preroll:'#c9a24b','Infused PR':'#b5742a',Edibles:'#8e44ad',Other:'#8a8f99'};
@@ -267,4 +266,6 @@ document.getElementById('botx').onclick=function(){document.getElementById('bot'
 botsend.onclick=function(){botAsk(botin.value);};
 botin.addEventListener('keydown',function(e){if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();botAsk(botin.value);}});
 botin.addEventListener('input',function(){this.style.height='auto';this.style.height=Math.min(this.scrollHeight,90)+'px';});
+
+render(); // run last: needs FAMCOL + mix helpers (above) and attaches after bot handlers
 </script></body></html>
