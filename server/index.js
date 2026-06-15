@@ -38,6 +38,35 @@ function accountTable() {
 }
 const TABLE = accountTable();
 
+// ----- Order / product-mix knowledge (aggregated from the Dragonfly export) -----
+let ORDERS = null;
+try { ORDERS = JSON.parse(readFileSync(new URL('./orders_summary.json', import.meta.url))); }
+catch { console.warn('orders_summary.json not found — product-mix knowledge disabled'); }
+
+function pct(fam) {
+  const tot = Object.values(fam).reduce((a, b) => a + b, 0) || 1;
+  return Object.entries(fam).sort((a, b) => b[1] - a[1])
+    .map(([k, v]) => `${k} ${Math.round(v / tot * 100)}%`).join(', ');
+}
+function moStr(mo) { return mo.map(([m, v]) => `${m}=$${v.toLocaleString()}`).join(' '); }
+
+function ordersText() {
+  if (!ORDERS) return '';
+  const o = ORDERS.overall;
+  let s = `DRAGONFLY ORDER / PRODUCT-MIX DATA — actual wholesale orders ${ORDERS.date_range[0]} to ${ORDERS.date_range[1]}.\n`;
+  s += `Use this for product-mix and change-over-time questions. Dollars are wholesale line-item subtotals; cancelled/rejected orders excluded. Match accounts by license.\n\n`;
+  s += `OVERALL: $${o.rev.toLocaleString()} across ${o.orders} orders.\n`;
+  s += `Category mix: ${pct(o.fam)}.\nMonthly $: ${moStr(o.mo)}.\n`;
+  s += `Top products: ${o.top_products.map((t) => `${t[0]} ($${t[1].toLocaleString()})`).join('; ')}.\n`;
+  s += `Top strains: ${o.top_strains.map((t) => `${t[0]} ($${t[1].toLocaleString()})`).join('; ')}.\n\n`;
+  s += `PER-ACCOUNT (license | name: total / orders / last order | category mix | monthly $ | top SKUs):\n`;
+  for (const [lic, a] of Object.entries(ORDERS.accounts)) {
+    s += `${lic} | ${a.name}: $${a.rev.toLocaleString()} / ${a.orders} ord / last ${a.last} | mix: ${pct(a.fam)} | monthly: ${moStr(a.mo)} | top: ${a.top.map((t) => t[0]).join('; ')}\n`;
+  }
+  return s;
+}
+const ORDERS_TEXT = ordersText();
+
 const TODAY = process.env.TODAY || new Date().toISOString().slice(0, 10);
 
 const INSTRUCTIONS = `You are the field-sales strategist for Dragonfly Kitchen × Jerome Baker (JB) in New York — a cannabis distribution and glass brand. You advise reps planning real visits to licensed dispensaries. Today is ${TODAY}.
@@ -55,6 +84,11 @@ FIELD MEANINGS
 - days_since_order: days since last Dragonfly order (Dragonfly accounts only).
 - hist_rev_usd: historical Dragonfly revenue with this account.
 - region/county/city/neighborhood: geography for routing.
+
+PRODUCT MIX & TRENDS
+- A separate block below has actual Dragonfly wholesale order data (by account, by product category, by month). Product families: Flower, Vape, Preroll, Infused PR, Edibles, Other.
+- Use it for any question about what an account buys, product mix, reorder cadence, month-over-month trends, what's growing/declining, or what to upsell/reintroduce. Cite real $ and percentages.
+- When an account in the order data isn't in the pipeline list (or vice-versa), reconcile by license and say what you see.
 
 HOW TO ANSWER
 - Be concise and specific. Lead with the answer, then the supporting accounts. Prefer tight tables or short bulleted lists over prose.
@@ -86,7 +120,7 @@ app.use((req, res, next) => {
   next();
 });
 
-app.get('/', (_req, res) => res.json({ ok: true, model: MODEL, accounts: ACCOUNTS.length }));
+app.get('/', (_req, res) => res.json({ ok: true, model: MODEL, accounts: ACCOUNTS.length, order_accounts: ORDERS ? Object.keys(ORDERS.accounts).length : 0, order_rev: ORDERS ? ORDERS.overall.rev : 0 }));
 
 app.post('/chat', async (req, res) => {
   try {
@@ -113,7 +147,7 @@ app.post('/chat', async (req, res) => {
       system: [
         { type: 'text', text: INSTRUCTIONS },
         // Cache the big data block so follow-up questions are cheap.
-        { type: 'text', text: 'ACCOUNT DATA (' + ACCOUNTS.length + ' doors):\n' + TABLE, cache_control: { type: 'ephemeral' } },
+        { type: 'text', text: 'ACCOUNT DATA (' + ACCOUNTS.length + ' doors):\n' + TABLE + (ORDERS_TEXT ? '\n\n' + ORDERS_TEXT : ''), cache_control: { type: 'ephemeral' } },
       ],
       messages,
     });

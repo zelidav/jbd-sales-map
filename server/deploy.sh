@@ -11,8 +11,10 @@ ALLOWED_ORIGIN="${ALLOWED_ORIGIN:-*}"
 
 cd "$(dirname "$0")"
 
-# Keep the bot's dataset in sync with the deployed map before every deploy.
+# Keep the bot's datasets in sync with the deployed map before every deploy.
 python ../tools/sync_accounts.py
+# Refresh product-mix aggregates if the raw order export is present locally.
+if [ -f ../data/dragonfly_orders.csv ]; then python ../tools/build_orders.py; fi
 
 # Make sure the runtime SA can read the shared Anthropic key.
 PROJ_NUM=$(gcloud projects describe "$PROJECT" --format="value(projectNumber)")
