@@ -61,10 +61,32 @@ label.tog{display:inline-flex;align-items:center;gap:5px;font-size:12px;cursor:p
 #botsend:disabled{opacity:.5;cursor:default}
 .botchips{padding:0 9px 9px;background:#fff;display:flex;gap:6px;flex-wrap:wrap}
 .botchips button{background:#eef3ee;border:1px solid #d6ddd6;border-radius:14px;padding:5px 9px;font-size:11px;cursor:pointer;color:var(--ink)}
-@media(max-width:760px){#bot{width:100%;height:100%;bottom:0;right:0;border-radius:0}#botbtn{bottom:14px;right:14px}}
+/* mobile controls (hidden on desktop) */
+#sheetclose{display:none;position:absolute;top:9px;right:10px;background:rgba(255,255,255,.18);border:none;color:#fff;width:32px;height:32px;border-radius:8px;font-size:22px;line-height:1;cursor:pointer;align-items:center;justify-content:center;z-index:3}
+#mobtoggle{display:none;position:absolute;bottom:16px;left:16px;z-index:1200;background:var(--ink);color:#fff;border:none;border-radius:24px;padding:11px 16px;font-size:13px;font-weight:600;box-shadow:0 3px 12px rgba(0,0,0,.32);align-items:center;gap:7px;cursor:pointer}
+@media(max-width:760px){
+  #app{flex-direction:column}
+  #main{position:fixed;inset:0;width:100%;height:100%}
+  #side{position:fixed;left:0;right:0;bottom:0;top:auto;width:100%;min-width:0;height:82vh;
+    z-index:1400;border-right:none;border-top-left-radius:18px;border-top-right-radius:18px;
+    box-shadow:0 -8px 28px rgba(0,0,0,.35);transform:translateY(100%);transition:transform .3s ease;will-change:transform}
+  #side.open{transform:translateY(0)}
+  #side::before{content:"";position:absolute;top:7px;left:50%;transform:translateX(-50%);width:42px;height:4px;border-radius:3px;background:rgba(255,255,255,.55);z-index:4}
+  #brand{position:relative;border-top-left-radius:18px;border-top-right-radius:18px;padding:16px 50px 12px 16px}
+  #brand h1{font-size:15px}
+  #filters{max-height:42vh}
+  #filters input{font-size:16px}
+  .chip{padding:6px 12px;font-size:13px}
+  .card{padding:12px 14px}
+  #sheetclose{display:flex}
+  #mobtoggle{display:flex}
+  #bot{width:100%;height:100%;bottom:0;right:0;border-radius:0;z-index:1600}
+  #botbtn{bottom:16px;right:16px;padding:11px 15px}
+  .leaflet-popup-content{max-width:78vw}
+}
 </style></head><body><div id="app">
 <div id="side">
-<div id="brand"><h1>Dragonfly × Jerome Baker — NY Field Map</h1><div class="sub">Reactivate · Prospect · Deploy — ranked by Pistil decile</div></div>
+<div id="brand"><h1>Dragonfly × Jerome Baker — NY Field Map</h1><div class="sub">Reactivate · Prospect · Deploy — ranked by Pistil decile</div><button id="sheetclose" aria-label="Close panel">×</button></div>
 <div id="filters">
 <input id="q" placeholder="Search name / city / neighborhood..."/>
 <div class="frow"><b>Role</b><div id="roleChips"></div></div>
@@ -73,6 +95,7 @@ label.tog{display:inline-flex;align-items:center;gap:5px;font-size:12px;cursor:p
 </div>
 <div id="stats"></div><div id="list"></div></div>
 <div id="main"><div id="map"></div>
+<button id="mobtoggle">☰ <span id="mobcount">Stores &amp; filters</span></button>
 <div id="route"><h3>Route builder (<span id="rcount">0</span>)</h3><div id="rstops"></div>
 <div class="act"><a id="gmap" href="#" target="_blank">Open in Google Maps</a><button id="rclear">Clear</button></div></div>
 <div class="leg" id="leg"></div>
@@ -120,11 +143,12 @@ function render(){cluster.clearLayers();markers={};var vis=visible();var listEl=
  vis.forEach(function(d){var mk=L.marker([d.lat,d.lng],{icon:dot(COLORS[d.role])}).bindPopup(popup(d));markers[d.lic||d.n]=mk;cluster.addLayer(mk);});
  var byRole={};vis.forEach(function(d){byRole[d.role]=(byRole[d.role]||0)+1;});
  document.getElementById('stats').innerHTML='<b>'+vis.length+'</b> doors · '+ROLES.filter(r=>byRole[r]).map(r=>'<span style="color:'+COLORS[r]+'">●</span>'+byRole[r]).join(' ');
+ document.getElementById('mobcount').textContent=vis.length+' stores';
  vis.sort(function(a,b){return (a.dec||11)-(b.dec||11)||(b.rev||0)-(a.rev||0);});
  vis.slice(0,400).forEach(function(d){var card=document.createElement('div');card.className='card';
   var sub=d.role.indexOf('Dragonfly')==0?(d.days!=null?d.days+'d since order'+(d.rev!=null?' · $'+d.rev.toLocaleString():''):''):(d.tier||d.role);
   card.innerHTML='<div class="nm">'+d.n+' '+decTag(d)+'</div><div class="meta"><span class="badge" style="background:'+COLORS[d.role]+'">'+d.role+'</span>'+(d.c||'')+(d.nb?' · '+d.nb:'')+'<br>'+sub+mixTag(d.lic)+'</div><div class="addr" title="add to route">＋</div>';
-  card.onclick=function(){map.setView([d.lat,d.lng],14);var mk=markers[d.lic||d.n];if(mk)mk.openPopup();};
+  card.onclick=function(){if(window.innerWidth<=760)document.getElementById('side').classList.remove('open');map.setView([d.lat,d.lng],14);var mk=markers[d.lic||d.n];if(mk)mk.openPopup();};
   card.querySelector('.addr').onclick=function(e){e.stopPropagation();addRoute(d.lic||d.n,d);};listEl.appendChild(card);});}
 window.addRoute=function(id,d){d=d||DATA.find(x=>(x.lic||x.n)==id);if(!d)return;if(route.find(r=>(r.lic||r.n)==id))return;route.push(d);drawRoute();};
 var routeLine=null;
@@ -266,6 +290,11 @@ document.getElementById('botx').onclick=function(){document.getElementById('bot'
 botsend.onclick=function(){botAsk(botin.value);};
 botin.addEventListener('keydown',function(e){if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();botAsk(botin.value);}});
 botin.addEventListener('input',function(){this.style.height='auto';this.style.height=Math.min(this.scrollHeight,90)+'px';});
+
+/* ===== Mobile bottom-sheet controls ===== */
+var sideEl=document.getElementById('side');
+document.getElementById('mobtoggle').onclick=function(){sideEl.classList.add('open');};
+document.getElementById('sheetclose').onclick=function(){sideEl.classList.remove('open');};
 
 render(); // run last: needs FAMCOL + mix helpers (above) and attaches after bot handlers
 </script></body></html>
