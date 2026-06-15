@@ -22,8 +22,10 @@ AFF = {'Manhattan':3.0,'NYC':2.4,'Brooklyn':1.8,'Queens':1.6,'Long Island':2.2,'
 NB = {'SoHo':1.5,'Tribeca':1.5,'Chelsea':1.2,'West Village':1.4,'Greenwich Village':1.3,
       'Upper East Side':1.2,'Upper West Side':1.0,'Hamptons':1.6,'East Hampton':1.6,
       'Southampton':1.6,'Flatiron':1.0,'NoHo':1.2,'Nolita':1.2,'Williamsburg':1.0}
-REL = {'Dragonfly Active':4,'Dragonfly Slipping':2.5,'Dragonfly Fallow':1.5,
-       'JB Tier 1':2,'JB Tier 2':1.5,'JB Tier 3':1,'New Prospect':0.5}
+# New brand (not Dragonfly/JB): relationship is only a slight "do we have a way in"
+# nudge, not a Dragonfly-loyalty bias. Prospects must compete on merit.
+REL = {'Dragonfly Active':2,'Dragonfly Slipping':1.8,'Dragonfly Fallow':1.5,
+       'JB Tier 1':1.6,'JB Tier 2':1.5,'JB Tier 3':1.4,'New Prospect':1.2}
 
 rows = []
 for a in acc:
@@ -41,11 +43,14 @@ for a in acc:
 mc = max(r["conn"] for r in rows) or 1
 mr = max(r["rev"] for r in rows) or 1
 for r in rows:
-    r["score"] = (0.42 * (r["conn"] / mc)
-                  + 0.10 * (math.log10(r["rev"] + 1) / math.log10(mr + 1))
-                  + 0.24 * (r["decsc"] / 10)
-                  + 0.14 * (r["aff"] / 4.6)
-                  + 0.10 * (r["rel"] / 4))
+    # New premium brand: market quality (decile) + affluence dominate. Flower+Vape
+    # spend is a proxy for "this door moves high-end product" (not Dragonfly loyalty);
+    # relationship is a small nudge so prime-market prospects still compete.
+    r["score"] = (0.22 * (r["conn"] / mc)
+                  + 0.03 * (math.log10(r["rev"] + 1) / math.log10(mr + 1))
+                  + 0.40 * (r["decsc"] / 10)
+                  + 0.30 * (r["aff"] / 4.6)
+                  + 0.05 * (r["rel"] / 2))
 rows.sort(key=lambda r: -r["score"])
 top = [r for r in rows[:50] if r["lic"]]
 
