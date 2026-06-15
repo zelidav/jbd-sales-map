@@ -35,6 +35,33 @@ label.tog{display:inline-flex;align-items:center;gap:5px;font-size:12px;cursor:p
 #route a{background:var(--ink);color:#fff;border-color:var(--ink)}
 .leg{position:absolute;bottom:10px;left:10px;background:#fff;border:1px solid #ccc;border-radius:8px;padding:8px 10px;font-size:11px;z-index:1000}
 .leg span{display:inline-block;width:10px;height:10px;border-radius:50%;margin-right:5px;vertical-align:middle}
+/* ---- Sales bot ---- */
+#botbtn{position:absolute;bottom:18px;right:18px;z-index:1200;background:var(--ink);color:#fff;border:none;border-radius:30px;padding:11px 16px;font-size:13px;font-weight:600;cursor:pointer;box-shadow:0 3px 12px rgba(0,0,0,.3);display:flex;align-items:center;gap:7px}
+#botbtn .g{color:var(--gold)}
+#bot{position:absolute;bottom:18px;right:18px;z-index:1300;width:380px;max-width:calc(100vw - 24px);height:560px;max-height:calc(100vh - 36px);background:#fff;border-radius:14px;box-shadow:0 8px 32px rgba(0,0,0,.35);display:none;flex-direction:column;overflow:hidden}
+#bot.open{display:flex}
+#bothdr{background:var(--ink);color:#fff;padding:11px 14px;display:flex;justify-content:space-between;align-items:center}
+#bothdr h3{margin:0;font-size:14px}#bothdr .sub{font-size:10px;color:var(--gold)}
+#botx{background:rgba(255,255,255,.15);border:none;color:#fff;border-radius:6px;width:26px;height:26px;font-size:16px;cursor:pointer}
+#botmsgs{flex:1;overflow-y:auto;padding:12px;background:#f6f7f5;font-size:13px;line-height:1.5}
+.bm{margin:0 0 12px;display:flex}
+.bm.u{justify-content:flex-end}
+.bm .bub{max-width:85%;padding:8px 11px;border-radius:12px;white-space:normal;word-wrap:break-word}
+.bm.u .bub{background:var(--ink);color:#fff;border-bottom-right-radius:3px}
+.bm.a .bub{background:#fff;border:1px solid #e2e4df;border-bottom-left-radius:3px}
+.bm .bub b{font-weight:700}.bm .bub code{background:#eef0ec;padding:1px 4px;border-radius:4px;font-size:12px}
+.bm .bub table{border-collapse:collapse;margin:6px 0;font-size:12px;width:100%}
+.bm .bub th,.bm .bub td{border:1px solid #e2e4df;padding:3px 6px;text-align:left}
+.bm .bub th{background:#f0f2ee}
+.routebtn{display:inline-block;margin:6px 0 2px;background:var(--green);color:#fff;border:none;border-radius:8px;padding:7px 12px;font-size:12px;font-weight:600;cursor:pointer}
+.bm .bub .tip{color:#888;font-size:11px}
+#botq{padding:9px;border-top:1px solid #e2e4df;display:flex;gap:7px;background:#fff}
+#botin{flex:1;border:1px solid #ccc;border-radius:18px;padding:8px 12px;font:inherit;font-size:13px;resize:none;max-height:90px;outline:none}
+#botsend{background:var(--ink);color:#fff;border:none;border-radius:18px;padding:0 15px;font-size:13px;font-weight:600;cursor:pointer}
+#botsend:disabled{opacity:.5;cursor:default}
+.botchips{padding:0 9px 9px;background:#fff;display:flex;gap:6px;flex-wrap:wrap}
+.botchips button{background:#eef3ee;border:1px solid #d6ddd6;border-radius:14px;padding:5px 9px;font-size:11px;cursor:pointer;color:var(--ink)}
+@media(max-width:760px){#bot{width:100%;height:100%;bottom:0;right:0;border-radius:0}#botbtn{bottom:14px;right:14px}}
 </style></head><body><div id="app">
 <div id="side">
 <div id="brand"><h1>Dragonfly × Jerome Baker — NY Field Map</h1><div class="sub">Reactivate · Prospect · Deploy — ranked by Pistil decile</div></div>
@@ -48,7 +75,15 @@ label.tog{display:inline-flex;align-items:center;gap:5px;font-size:12px;cursor:p
 <div id="main"><div id="map"></div>
 <div id="route"><h3>Route builder (<span id="rcount">0</span>)</h3><div id="rstops"></div>
 <div class="act"><a id="gmap" href="#" target="_blank">Open in Google Maps</a><button id="rclear">Clear</button></div></div>
-<div class="leg" id="leg"></div></div></div>
+<div class="leg" id="leg"></div>
+<button id="botbtn">💬 Ask the <span class="g">Sales Bot</span></button>
+<div id="bot">
+ <div id="bothdr"><div><h3>Dragonfly × JB Sales Bot</h3><div class="sub">538 doors · ask anything · get routes</div></div><button id="botx">×</button></div>
+ <div id="botmsgs"></div>
+ <div class="botchips" id="botchips"></div>
+ <div id="botq"><textarea id="botin" rows="1" placeholder="Ask about accounts, priorities, routes…"></textarea><button id="botsend">Send</button></div>
+</div>
+</div></div>
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script src="https://unpkg.com/leaflet.markercluster@1.5.3/dist/leaflet.markercluster.js"></script>
 <script>
@@ -96,4 +131,115 @@ function drawRoute(){var rs=document.getElementById('rstops');rs.innerHTML='';do
 document.getElementById('rclear').onclick=function(){route=[];drawRoute();};
 document.getElementById('leg').innerHTML=ROLES.map(r=>'<div><span style="background:'+COLORS[r]+'"></span>'+r+'</div>').join('')+'<div style="margin-top:3px;color:#666">D# = Pistil decile (1=top)</div>';
 render();
+
+/* ================= Sales Bot ================= */
+var BOT_URL="https://jbd-sales-bot-ltqqg7poja-uc.a.run.app";
+var botMsgs=[],botBusy=false;
+var botmsgs=document.getElementById('botmsgs'),botin=document.getElementById('botin'),botsend=document.getElementById('botsend');
+
+function esc(s){return String(s).replace(/[&<>]/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;'}[c];});}
+function inl(s){return esc(s).replace(/\*\*(.+?)\*\*/g,'<b>$1</b>').replace(/`([^`]+)`/g,'<code>$1</code>');}
+
+// Lightweight markdown -> html, with special handling for ```route blocks and tables.
+function renderBot(text){
+  var lines=text.split('\n'),out=[],i=0;
+  function tableRow(l){return l.trim().indexOf('|')>=0;}
+  while(i<lines.length){
+    var l=lines[i];
+    if(/^```/.test(l.trim())){
+      var lang=l.trim().slice(3).trim().toLowerCase(),body=[];i++;
+      while(i<lines.length && !/^```/.test(lines[i].trim())){body.push(lines[i]);i++;}
+      i++; // skip closing fence
+      if(lang==='route'){
+        var ids=body.map(function(x){return x.trim();}).filter(Boolean);
+        out.push('<button class="routebtn" data-route="'+esc(JSON.stringify(ids))+'">📍 Plot route ('+ids.length+' stops) on map</button>');
+      } else { out.push('<pre style="background:#eef0ec;padding:6px;border-radius:6px;overflow-x:auto;font-size:12px">'+esc(body.join('\n'))+'</pre>'); }
+      continue;
+    }
+    // table: header row + separator row of ---
+    if(tableRow(l) && i+1<lines.length && /^[\s|:\-]+$/.test(lines[i+1]) && lines[i+1].indexOf('-')>=0){
+      var rows=[];rows.push(l);i++; // header
+      i++; // separator
+      while(i<lines.length && tableRow(lines[i]) && lines[i].trim()){rows.push(lines[i]);i++;}
+      var cells=function(r){var p=r.trim().replace(/^\||\|$/g,'').split('|');return p.map(function(c){return c.trim();});};
+      var h='<table><tr>'+cells(rows[0]).map(function(c){return '<th>'+inl(c)+'</th>';}).join('')+'</tr>';
+      for(var r=1;r<rows.length;r++){h+='<tr>'+cells(rows[r]).map(function(c){return '<td>'+inl(c)+'</td>';}).join('')+'</tr>';}
+      out.push(h+'</table>');continue;
+    }
+    // bullet / numbered list
+    if(/^\s*[-*]\s+/.test(l)){var b=[];while(i<lines.length && /^\s*[-*]\s+/.test(lines[i])){b.push('<li>'+inl(lines[i].replace(/^\s*[-*]\s+/,''))+'</li>');i++;}out.push('<ul style="margin:4px 0;padding-left:18px">'+b.join('')+'</ul>');continue;}
+    if(/^\s*\d+\.\s+/.test(l)){var o=[];while(i<lines.length && /^\s*\d+\.\s+/.test(lines[i])){o.push('<li>'+inl(lines[i].replace(/^\s*\d+\.\s+/,''))+'</li>');i++;}out.push('<ol style="margin:4px 0;padding-left:20px">'+o.join('')+'</ol>');continue;}
+    if(l.trim()===''){out.push('');i++;continue;}
+    // paragraph (gather consecutive plain lines)
+    var par=[];while(i<lines.length && lines[i].trim()!=='' && !/^```/.test(lines[i].trim()) && !/^\s*[-*]\s+/.test(lines[i]) && !/^\s*\d+\.\s+/.test(lines[i]) && !(tableRow(lines[i])&&i+1<lines.length&&/^[\s|:\-]+$/.test(lines[i+1])&&lines[i+1].indexOf('-')>=0)){par.push(inl(lines[i]));i++;}
+    out.push('<div>'+par.join('<br>')+'</div>');
+  }
+  return out.join('');
+}
+
+function plotRoute(ids){
+  document.getElementById('rclear').click();
+  var added=[];
+  ids.forEach(function(raw){
+    var s=String(raw).trim().toLowerCase();if(!s)return;
+    var d=DATA.find(function(x){return (x.lic||'').toLowerCase()===s;})
+        ||DATA.find(function(x){return x.n.toLowerCase()===s;})
+        ||DATA.find(function(x){return x.n.toLowerCase().indexOf(s)>=0;});
+    if(d && !added.includes(d)){window.addRoute(d.lic||d.n,d);added.push(d);}
+  });
+  if(added.length){
+    if(window.innerWidth<=760){document.getElementById('bot').classList.remove('open');}
+    try{map.fitBounds(L.latLngBounds(added.map(function(d){return [d.lat,d.lng];})).pad(0.25));}catch(e){}
+  }
+  return added.length;
+}
+
+function addBubble(role,html){
+  var d=document.createElement('div');d.className='bm '+(role==='user'?'u':'a');
+  d.innerHTML='<div class="bub">'+html+'</div>';botmsgs.appendChild(d);
+  d.querySelectorAll('.routebtn').forEach(function(btn){
+    btn.onclick=function(){var n=plotRoute(JSON.parse(btn.dataset.route));btn.textContent=n?('✓ Plotted '+n+' stops — see map & Route builder'):'Could not match these stops';btn.disabled=true;btn.style.opacity=.7;};
+  });
+  botmsgs.scrollTop=botmsgs.scrollHeight;return d;
+}
+
+async function botAsk(text){
+  if(botBusy||!text.trim())return;
+  botBusy=true;botsend.disabled=true;
+  botMsgs.push({role:'user',content:text});
+  addBubble('user',esc(text));
+  botin.value='';botin.style.height='auto';
+  var wait=addBubble('assistant','<span class="tip">thinking…</span>');
+  try{
+    var res=await fetch(BOT_URL+'/chat',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({messages:botMsgs})});
+    var j=await res.json();
+    if(!res.ok)throw new Error(j.error||('HTTP '+res.status));
+    wait.querySelector('.bub').innerHTML=renderBot(j.reply);
+    wait.querySelectorAll('.routebtn').forEach(function(btn){btn.onclick=function(){var n=plotRoute(JSON.parse(btn.dataset.route));btn.textContent=n?('✓ Plotted '+n+' stops — see map & Route builder'):'Could not match these stops';btn.disabled=true;btn.style.opacity=.7;};});
+    botMsgs.push({role:'assistant',content:j.reply});
+  }catch(err){
+    wait.querySelector('.bub').innerHTML='<span style="color:#b00">⚠ '+esc(err.message)+'</span>';
+  }
+  botmsgs.scrollTop=botmsgs.scrollHeight;
+  botBusy=false;botsend.disabled=false;botin.focus();
+}
+
+var BOT_SUGGEST=[
+  "Top 10 reactivation targets by lost revenue",
+  "Plan a Brooklyn day route hitting slipping accounts + top prospects",
+  "Which Tier 1 JB targets haven't ordered recently?",
+  "Best new prospects in the Mid-Hudson region"
+];
+function botGreeting(){
+  botmsgs.innerHTML='';
+  addBubble('assistant','Hi — I’m your Dragonfly × JB field bot. I know all <b>538 doors</b> on this map: roles, deciles, last-order recency, revenue, reps, and locations.<br><br>Ask me to prioritize accounts, analyze a region, or <b>build a driving route</b> — I’ll plot it right on the map.');
+  var c=document.getElementById('botchips');c.innerHTML='';
+  BOT_SUGGEST.forEach(function(s){var b=document.createElement('button');b.textContent=s;b.onclick=function(){botAsk(s);};c.appendChild(b);});
+}
+
+document.getElementById('botbtn').onclick=function(){document.getElementById('bot').classList.add('open');this.style.display='none';if(!botMsgs.length)botGreeting();botin.focus();};
+document.getElementById('botx').onclick=function(){document.getElementById('bot').classList.remove('open');document.getElementById('botbtn').style.display='flex';};
+botsend.onclick=function(){botAsk(botin.value);};
+botin.addEventListener('keydown',function(e){if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();botAsk(botin.value);}});
+botin.addEventListener('input',function(){this.style.height='auto';this.style.height=Math.min(this.scrollHeight,90)+'px';});
 </script></body></html>
