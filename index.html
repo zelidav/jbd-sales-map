@@ -39,30 +39,38 @@ label.tog{display:inline-flex;align-items:center;gap:5px;font-size:12px;cursor:p
 /* ---- Sales bot ---- */
 #botbtn{position:absolute;bottom:18px;right:18px;z-index:1200;background:var(--ink);color:#fff;border:none;border-radius:30px;padding:11px 16px;font-size:13px;font-weight:600;cursor:pointer;box-shadow:0 3px 12px rgba(0,0,0,.3);display:flex;align-items:center;gap:7px}
 #botbtn .g{color:var(--gold)}
-#bot{position:absolute;bottom:18px;right:18px;z-index:1300;width:380px;max-width:calc(100vw - 24px);height:560px;max-height:calc(100vh - 36px);background:#fff;border-radius:14px;box-shadow:0 8px 32px rgba(0,0,0,.35);display:none;flex-direction:column;overflow:hidden}
+#bot{position:absolute;bottom:18px;right:18px;z-index:1300;width:390px;max-width:calc(100vw - 24px);height:600px;max-height:calc(100vh - 36px);background:#fff;border-radius:18px;box-shadow:0 12px 40px rgba(0,0,0,.3);display:none;flex-direction:column;overflow:hidden}
 #bot.open{display:flex}
-#bothdr{background:var(--ink);color:#fff;padding:11px 14px;display:flex;justify-content:space-between;align-items:center}
-#bothdr h3{margin:0;font-size:14px}#bothdr .sub{font-size:10px;color:var(--gold)}
-#botx{background:rgba(255,255,255,.15);border:none;color:#fff;border-radius:6px;width:26px;height:26px;font-size:16px;cursor:pointer}
-#botmsgs{flex:1;overflow-y:auto;padding:12px;background:#f6f7f5;font-size:13px;line-height:1.5}
-.bm{margin:0 0 12px;display:flex}
-.bm.u{justify-content:flex-end}
-.bm .bub{max-width:85%;padding:8px 11px;border-radius:12px;white-space:normal;word-wrap:break-word;overflow-wrap:anywhere;box-sizing:border-box}
-.bm .bub table{display:block;overflow-x:auto;max-width:100%}
-.bm.u .bub{background:var(--ink);color:#fff;border-bottom-right-radius:3px}
-.bm.a .bub{background:#fff;border:1px solid #e2e4df;border-bottom-left-radius:3px}
-.bm .bub b{font-weight:700}.bm .bub code{background:#eef0ec;padding:1px 4px;border-radius:4px;font-size:12px}
-.bm .bub table{border-collapse:collapse;margin:6px 0;font-size:12px;width:100%}
-.bm .bub th,.bm .bub td{border:1px solid #e2e4df;padding:3px 6px;text-align:left}
-.bm .bub th{background:#f0f2ee}
-.routebtn{display:inline-block;margin:6px 0 2px;background:var(--green);color:#fff;border:none;border-radius:8px;padding:7px 12px;font-size:12px;font-weight:600;cursor:pointer}
-.bm .bub .tip{color:#888;font-size:11px}
-#botq{padding:9px;border-top:1px solid #e2e4df;display:flex;gap:7px;background:#fff}
-#botin{flex:1;border:1px solid #ccc;border-radius:18px;padding:8px 12px;font:inherit;font-size:13px;resize:none;max-height:90px;outline:none}
-#botsend{background:var(--ink);color:#fff;border:none;border-radius:18px;padding:0 15px;font-size:13px;font-weight:600;cursor:pointer}
+#bothdr{background:linear-gradient(135deg,#1c3a28,#14241a);color:#fff;padding:14px 16px;display:flex;justify-content:space-between;align-items:center;flex:0 0 auto}
+#bothdr h3{margin:0;font-size:15px;font-weight:700;letter-spacing:.2px}#bothdr .sub{font-size:10.5px;color:var(--gold);margin-top:2px}
+#botx{background:rgba(255,255,255,.16);border:none;color:#fff;border-radius:9px;width:34px;height:34px;font-size:20px;line-height:1;cursor:pointer;flex:0 0 auto}
+#botmsgs{flex:1 1 auto;min-height:0;overflow-y:auto;padding:14px;background:#eef2ee;font-size:14px;line-height:1.5}
+.bm{margin:0 0 14px}
+.bm.u{text-align:right}
+.bm .bub{display:inline-block;text-align:left;max-width:86%;padding:10px 13px;border-radius:16px;white-space:normal;word-wrap:break-word;overflow-wrap:anywhere;box-sizing:border-box;box-shadow:0 1px 2px rgba(20,36,26,.08)}
+.bm.u .bub{background:linear-gradient(135deg,#239455,#1f7a44);color:#fff;border-bottom-right-radius:5px}
+.bm.a .bub{background:#fff;color:#14241a;border-bottom-left-radius:5px}
+.bm .bub b{font-weight:700}
+.bm .bub code{background:#eef0ec;padding:1px 5px;border-radius:5px;font-size:13px}
+.bm .bub p,.bm .bub div{margin:0 0 4px}.bm .bub ul,.bm .bub ol{margin:6px 0;padding-left:20px}.bm .bub li{margin:2px 0}
+.bm .bub table{display:block;overflow-x:auto;max-width:100%;border-collapse:collapse;margin:8px 0;font-size:12.5px}
+.bm .bub th,.bm .bub td{padding:5px 8px;text-align:left;border-bottom:1px solid #e7eae6}
+.bm .bub th{background:#1f7a44;color:#fff;font-weight:600;border-bottom:none;white-space:nowrap}
+.bm .bub tr:nth-child(even) td{background:#f5f8f5}
+.routebtn{display:inline-block;margin:8px 0 2px;background:#1f7a44;color:#fff;border:none;border-radius:10px;padding:9px 14px;font-size:12.5px;font-weight:700;cursor:pointer;box-shadow:0 2px 6px rgba(31,122,68,.3)}
+.addchips{margin-top:10px;display:flex;flex-wrap:wrap;gap:6px;align-items:center}
+.addchips .aclabel{width:100%;font-size:9.5px;color:#7a8a7f;text-transform:uppercase;letter-spacing:.5px;font-weight:700;margin-bottom:1px}
+.addchip{background:#fff;border:1.5px solid #1f7a44;color:#1f7a44;border-radius:15px;padding:6px 11px;font-size:11.5px;font-weight:600;cursor:pointer;touch-action:manipulation}
+.addchip.all{background:#1f7a44;color:#fff}
+.addchip.done{background:#eef3ee;border-color:#cfe0d3;color:#86a08c}
+.bm .bub .tip{color:#9aa39c;font-size:12px}
+#botq{padding:10px;border-top:1px solid #dfe4df;display:flex;gap:8px;background:#fff;align-items:flex-end;flex:0 0 auto}
+#botin{flex:1;border:1.5px solid #d2d8d2;border-radius:20px;padding:10px 14px;font:inherit;font-size:15px;resize:none;max-height:96px;outline:none;background:#f7f9f7}
+#botin:focus{border-color:#1f7a44;background:#fff}
+#botsend{background:#1f7a44;color:#fff;border:none;border-radius:20px;padding:0 17px;height:42px;font-size:14px;font-weight:700;cursor:pointer;flex:0 0 auto}
 #botsend:disabled{opacity:.5;cursor:default}
-.botchips{padding:0 9px 9px;background:#fff;display:flex;gap:6px;flex-wrap:wrap}
-.botchips button{background:#eef3ee;border:1px solid #d6ddd6;border-radius:14px;padding:5px 9px;font-size:11px;cursor:pointer;color:var(--ink)}
+.botchips{padding:0 10px 10px;background:#fff;display:flex;gap:6px;flex-wrap:wrap;flex:0 0 auto}
+.botchips button{background:#eef3ee;border:1px solid #d6ddd6;border-radius:15px;padding:7px 11px;font-size:11.5px;cursor:pointer;color:var(--ink);touch-action:manipulation}
 #rstart{display:none;padding:7px 12px;border-bottom:1px solid #f0f0f0;background:#f8f9f7}
 #rstart .slbl{font-size:11px;color:#555;margin-bottom:5px}
 #rstart .slbl b{color:#14241a}
@@ -308,12 +316,33 @@ function plotRoute(ids){
   return added.length;
 }
 
-function addBubble(role,html){
-  var d=document.createElement('div');d.className='bm '+(role==='user'?'u':'a');
-  d.innerHTML='<div class="bub">'+html+'</div>';botmsgs.appendChild(d);
+// Find accounts the bot named in a reply (exact name match, distinct enough to be safe)
+function mentionedStores(text){
+  var low=(' '+text+' ').toLowerCase(),seen={},out=[];
+  DATA.forEach(function(d){if(!d.lat||!d.n||d.n.length<6)return;
+    if(low.indexOf(d.n.toLowerCase())>=0){var k=(d.lic||d.n);if(!seen[k]){seen[k]=1;out.push(d);}}});
+  return out.slice(0,12);
+}
+function appendStoreChips(bubEl,text){
+  var stores=mentionedStores(text);if(!stores.length)return;
+  var wrap=document.createElement('div');wrap.className='addchips';
+  wrap.innerHTML='<div class="aclabel">Add to route</div>';
+  stores.forEach(function(d){var b=document.createElement('button');b.className='addchip';b.textContent='+ '+d.n;
+    b.onclick=function(){window.addRoute(d.lic||d.n,d);b.textContent='✓ '+d.n;b.disabled=true;b.classList.add('done');};wrap.appendChild(b);});
+  if(stores.length>1){var all=document.createElement('button');all.className='addchip all';all.textContent='+ Add all '+stores.length;
+    all.onclick=function(){stores.forEach(function(d){window.addRoute(d.lic||d.n,d);});all.textContent='✓ Added all';all.disabled=true;
+      wrap.querySelectorAll('.addchip:not(.all)').forEach(function(x){x.disabled=true;x.classList.add('done');});};wrap.appendChild(all);}
+  bubEl.appendChild(wrap);
+}
+function wireReply(d){
   d.querySelectorAll('.routebtn').forEach(function(btn){
     btn.onclick=function(){var n=plotRoute(JSON.parse(btn.dataset.route));btn.textContent=n?('✓ Plotted '+n+' stops — see map & Route builder'):'Could not match these stops';btn.disabled=true;btn.style.opacity=.7;};
   });
+}
+function addBubble(role,html){
+  var d=document.createElement('div');d.className='bm '+(role==='user'?'u':'a');
+  d.innerHTML='<div class="bub">'+(role==='user'?'<div>'+html+'</div>':html)+'</div>';botmsgs.appendChild(d);
+  wireReply(d);
   botmsgs.scrollTop=botmsgs.scrollHeight;return d;
 }
 
@@ -328,8 +357,9 @@ async function botAsk(text){
     var res=await fetch(BOT_URL+'/chat',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({messages:botMsgs})});
     var j=await res.json();
     if(!res.ok)throw new Error(j.error||('HTTP '+res.status));
-    wait.querySelector('.bub').innerHTML=renderBot(j.reply);
-    wait.querySelectorAll('.routebtn').forEach(function(btn){btn.onclick=function(){var n=plotRoute(JSON.parse(btn.dataset.route));btn.textContent=n?('✓ Plotted '+n+' stops — see map & Route builder'):'Could not match these stops';btn.disabled=true;btn.style.opacity=.7;};});
+    var bub=wait.querySelector('.bub');bub.innerHTML=renderBot(j.reply);
+    wireReply(wait);
+    appendStoreChips(bub,j.reply);
     botMsgs.push({role:'assistant',content:j.reply});
   }catch(err){
     wait.querySelector('.bub').innerHTML='<span style="color:#b00">⚠ '+esc(err.message)+'</span>';
