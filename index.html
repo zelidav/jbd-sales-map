@@ -63,6 +63,8 @@ label.tog{display:inline-flex;align-items:center;gap:5px;font-size:12px;cursor:p
 .addchip{background:#fff;border:1.5px solid #1f7a44;color:#1f7a44;border-radius:15px;padding:6px 11px;font-size:11.5px;font-weight:600;cursor:pointer;touch-action:manipulation}
 .addchip.all{background:#1f7a44;color:#fff}
 .addchip.done{background:#eef3ee;border-color:#cfe0d3;color:#86a08c}
+.iadd{display:inline-flex;align-items:center;margin:0 0 0 6px;background:#1f7a44;color:#fff;border:none;border-radius:9px;padding:2px 8px;font-size:10.5px;font-weight:700;cursor:pointer;vertical-align:middle;line-height:1.4;white-space:nowrap;touch-action:manipulation}
+.iadd.done{background:#cfe0d3;color:#2f6b43}
 .bm .bub .tip{color:#9aa39c;font-size:12px}
 #botq{padding:10px;border-top:1px solid #dfe4df;display:flex;gap:8px;background:#fff;align-items:flex-end;flex:0 0 auto}
 #botin{flex:1;border:1.5px solid #d2d8d2;border-radius:20px;padding:10px 14px;font:inherit;font-size:15px;resize:none;max-height:96px;outline:none;background:#f7f9f7}
@@ -120,7 +122,9 @@ label.tog{display:inline-flex;align-items:center;gap:5px;font-size:12px;cursor:p
 <button id="mobtoggle">☰ <span id="mobcount">Stores &amp; filters</span></button>
 <div id="route"><h3>Route builder (<span id="rcount">0</span>)</h3>
 <div id="rstart"><div class="slbl">📍 Start: <b id="startlabel">not set</b></div>
- <div class="sbtns"><button id="useloc">📍 My location</button><button id="setaddr">✏️ Address</button><button id="optroute">⚡ Optimize</button></div></div>
+ <div class="sbtns"><button id="useloc">📍 My location</button><button id="setaddr">✏️ Address</button></div>
+ <div class="slbl" style="margin-top:7px">🏁 End: <b id="endlabel">not set</b></div>
+ <div class="sbtns"><button id="endsame">↩ Same as start</button><button id="endaddr">✏️ Address</button><button id="optroute">⚡ Optimize</button></div></div>
 <div id="rstops"></div><div id="rtotal" class="rtotal"></div>
 <div class="act"><a id="gmap" href="#" target="_blank">Open in Google Maps</a><button id="rclear">Clear</button></div></div>
 <div class="leg" id="leg"></div>
@@ -186,51 +190,60 @@ function render(){cluster.clearLayers();markers={};var vis=visible();var listEl=
    if(mk&&cluster.zoomToShowLayer){cluster.zoomToShowLayer(mk,function(){mk.openPopup();});}
    else{map.setView([d.lat,d.lng],14);if(mk)mk.openPopup();}};
   card.querySelector('.addr').onclick=function(e){e.stopPropagation();addRoute(d.lic||d.n,d);};listEl.appendChild(card);});}
-window.addRoute=function(id,d){d=d||DATA.find(x=>(x.lic||x.n)==id);if(!d)return;if(route.find(r=>(r.lic||r.n)==id))return;route.push(d);drawRoute();};
-var routeLine=null,startPt=null,startMarker=null;
+window.addRoute=function(id,d){d=d||DATA.find(x=>(x.lic||x.n)==id);if(!d)return;if(route.find(r=>(r.lic||r.n)==id))return;route.push(d);
+ if(startPt)optimizeOrder();else drawRoute();}; // auto-order by proximity from start
+var routeLine=null,startPt=null,endPt=null,startMarker=null,endMarker=null;
 function hav(a,b){var R=6371,toR=function(x){return x*Math.PI/180;};var dLat=toR(b[0]-a[0]),dLng=toR(b[1]-a[1]);var s=Math.sin(dLat/2)*Math.sin(dLat/2)+Math.cos(toR(a[0]))*Math.cos(toR(b[0]))*Math.sin(dLng/2)*Math.sin(dLng/2);return 2*R*Math.asin(Math.sqrt(s));}
-function pathLen(start,arr){var t=0,cur=start;for(var i=0;i<arr.length;i++){t+=hav(cur,[arr[i].lat,arr[i].lng]);cur=[arr[i].lat,arr[i].lng];}return t;}
-function optimizeOrder(){if(route.length<2)return;
- var start=startPt?[startPt.lat,startPt.lng]:[route[0].lat,route[0].lng];
- var rem=route.slice(),ord=[],cur=start; // nearest-neighbor seed
+function pathLen(start,arr,end){var t=0,cur=start;for(var i=0;i<arr.length;i++){t+=hav(cur,[arr[i].lat,arr[i].lng]);cur=[arr[i].lat,arr[i].lng];}if(end)t+=hav(cur,[end.lat,end.lng]);return t;}
+function optimizeOrder(){if(route.length<1){drawRoute();return;}
+ var start=startPt?[startPt.lat,startPt.lng]:[route[0].lat,route[0].lng],end=endPt?[endPt.lat,endPt.lng]:null;
+ if(route.length<2){drawRoute();return;}
+ var rem=route.slice(),ord=[],cur=start; // nearest-neighbor seed from start
  while(rem.length){var bi=0,bd=Infinity;for(var i=0;i<rem.length;i++){var dd=hav(cur,[rem[i].lat,rem[i].lng]);if(dd<bd){bd=dd;bi=i;}}cur=[rem[bi].lat,rem[bi].lng];ord.push(rem.splice(bi,1)[0]);}
- var improved=true,guard=0; // 2-opt refine
- while(improved&&guard++<50){improved=false;
+ var improved=true,guard=0; // 2-opt refine (honors fixed start + end)
+ while(improved&&guard++<60){improved=false;
   for(var i=0;i<ord.length-1;i++)for(var k=i+1;k<ord.length;k++){
    var na=ord.slice(0,i).concat(ord.slice(i,k+1).reverse(),ord.slice(k+1));
-   if(pathLen(start,na)+1e-9<pathLen(start,ord)){ord=na;improved=true;}}}
+   if(pathLen(start,na,endPt)+1e-9<pathLen(start,ord,endPt)){ord=na;improved=true;}}}
  route=ord;drawRoute();}
-function setStart(lat,lng,label){startPt={lat:lat,lng:lng,label:label};optimizeOrder();drawRoute();
+function geocode(q,cb){fetch('https://nominatim.openstreetmap.org/search?format=json&limit=1&q='+encodeURIComponent(q)).then(function(r){return r.json();}).then(function(j){
+  if(!j||!j.length){alert('Could not find that address — try adding a city/state.');return;}
+  cb(parseFloat(j[0].lat),parseFloat(j[0].lon),j[0].display_name.split(',').slice(0,2).join(',').trim());
+ }).catch(function(){alert('Address lookup failed — check your connection.');});}
+function setStart(lat,lng,label){startPt={lat:lat,lng:lng,label:label};optimizeOrder();
  if(window.innerWidth<=760)document.getElementById('side').classList.remove('open');}
+function setEnd(lat,lng,label){endPt={lat:lat,lng:lng,label:label};optimizeOrder();}
 function useMyLocation(){if(!navigator.geolocation){alert('Location is not available on this device/browser.');return;}
  var b=document.getElementById('useloc'),old=b.textContent;b.textContent='Locating…';b.disabled=true;
  navigator.geolocation.getCurrentPosition(
   function(p){b.textContent=old;b.disabled=false;setStart(p.coords.latitude,p.coords.longitude,'My location');},
   function(err){b.textContent=old;b.disabled=false;alert('Could not get your location: '+err.message+'. Tip: allow location access, or use the Address option.');},
   {enableHighAccuracy:true,timeout:10000,maximumAge:60000});}
-function setStartByAddress(){var a=prompt('Starting address or place (e.g. "Albany, NY", a depot, or a home base):');if(!a)return;
- fetch('https://nominatim.openstreetmap.org/search?format=json&limit=1&q='+encodeURIComponent(a)).then(function(r){return r.json();}).then(function(j){
-  if(!j||!j.length){alert('Could not find that address — try adding a city/state.');return;}
-  setStart(parseFloat(j[0].lat),parseFloat(j[0].lon),j[0].display_name.split(',').slice(0,2).join(',').trim());
- }).catch(function(){alert('Address lookup failed — check your connection.');});}
+function setStartByAddress(){var a=prompt('Starting address or place (e.g. "Albany, NY", a depot, or a home base):');if(a)geocode(a,setStart);}
+function setEndByAddress(){var a=prompt('Ending address or place (where you want to finish the day):');if(a)geocode(a,setEnd);}
+function pin(color,letter){return L.divIcon({className:'',html:'<div style="background:'+color+';color:#fff;border:2px solid #fff;border-radius:50%;width:22px;height:22px;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;box-shadow:0 0 4px rgba(0,0,0,.5)">'+letter+'</div>',iconSize:[22,22]});}
 function drawRoute(){var rs=document.getElementById('rstops');rs.innerHTML='';document.getElementById('rcount').textContent=route.length;
  document.getElementById('route').style.display=(route.length||window.innerWidth>760)?'flex':'none';
  var sc=document.getElementById('rstart');if(sc)sc.style.display=route.length>=2?'block':'none';
  var sl=document.getElementById('startlabel');if(sl)sl.textContent=startPt?startPt.label:'not set — uses first stop';
+ var el=document.getElementById('endlabel');if(el)el.textContent=endPt?endPt.label:'not set (open-ended)';
  route.forEach(function(d,i){var e=document.createElement('div');e.className='rstop';e.innerHTML='<span>'+(i+1)+'. '+d.n+'</span><small>✕</small>';
-  e.querySelector('small').onclick=function(){route.splice(i,1);drawRoute();};rs.appendChild(e);});
+  e.querySelector('small').onclick=function(){route.splice(i,1);if(startPt)optimizeOrder();else drawRoute();};rs.appendChild(e);});
  var td=document.getElementById('rtotal');
- if(td){if(route.length>=2){var st=startPt?[startPt.lat,startPt.lng]:[route[0].lat,route[0].lng];var km=pathLen(st,startPt?route:route.slice(1));td.textContent='≈ '+(km*0.621371).toFixed(1)+' mi'+(startPt?' from start':' (set a start for door-to-door)');}else td.textContent='';}
- if(startMarker){map.removeLayer(startMarker);startMarker=null;}
- if(startPt){startMarker=L.marker([startPt.lat,startPt.lng],{icon:L.divIcon({className:'',html:'<div style="background:#2f6fb0;color:#fff;border:2px solid #fff;border-radius:50%;width:22px;height:22px;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;box-shadow:0 0 4px rgba(0,0,0,.5)">S</div>',iconSize:[22,22]})}).addTo(map);}
+ if(td){if(route.length>=2){var st=startPt?[startPt.lat,startPt.lng]:[route[0].lat,route[0].lng];var km=pathLen(st,startPt?route:route.slice(1),endPt);td.textContent='≈ '+(km*0.621371).toFixed(1)+' mi'+(startPt?' from start':' (set a start)')+(endPt?' → end':'');}else td.textContent='';}
+ if(startMarker){map.removeLayer(startMarker);startMarker=null;}if(endMarker){map.removeLayer(endMarker);endMarker=null;}
+ if(startPt)startMarker=L.marker([startPt.lat,startPt.lng],{icon:pin('#2f6fb0','S')}).addTo(map);
+ if(endPt)endMarker=L.marker([endPt.lat,endPt.lng],{icon:pin('#c0392b','E')}).addTo(map);
  if(routeLine)map.removeLayer(routeLine);
- var pts=route.map(function(d){return [d.lat,d.lng];});if(startPt)pts.unshift([startPt.lat,startPt.lng]);
+ var pts=route.map(function(d){return [d.lat,d.lng];});if(startPt)pts.unshift([startPt.lat,startPt.lng]);if(endPt)pts.push([endPt.lat,endPt.lng]);
  if(pts.length>1){routeLine=L.polyline(pts,{color:'#14241a',weight:3,opacity:.6,dashArray:'6,6'}).addTo(map);}
- var origin=startPt?startPt.lat+','+startPt.lng+'/':'';
- document.getElementById('gmap').href='https://www.google.com/maps/dir/'+origin+route.map(function(d){return d.lat+','+d.lng;}).join('/');}
-document.getElementById('rclear').onclick=function(){route=[];startPt=null;drawRoute();};
+ var origin=startPt?startPt.lat+','+startPt.lng+'/':'',dest=endPt?'/'+endPt.lat+','+endPt.lng:'';
+ document.getElementById('gmap').href='https://www.google.com/maps/dir/'+origin+route.map(function(d){return d.lat+','+d.lng;}).join('/')+dest;}
+document.getElementById('rclear').onclick=function(){route=[];startPt=null;endPt=null;drawRoute();};
 document.getElementById('useloc').onclick=useMyLocation;
 document.getElementById('setaddr').onclick=setStartByAddress;
+document.getElementById('endsame').onclick=function(){if(!startPt){alert('Set a start first, then “Same as start” makes it a round trip.');return;}setEnd(startPt.lat,startPt.lng,'Back to start');};
+document.getElementById('endaddr').onclick=setEndByAddress;
 document.getElementById('optroute').onclick=function(){if(route.length<2){alert('Add at least 2 stops first.');return;}optimizeOrder();};
 document.getElementById('leg').innerHTML=ROLES.map(r=>'<div><span style="background:'+COLORS[r]+'"></span>'+r+'</div>').join('')+'<div style="margin-top:3px;color:#666">D# = Pistil decile (1=top)</div>';
 
@@ -316,23 +329,28 @@ function plotRoute(ids){
   return added.length;
 }
 
-// Find accounts the bot named in a reply (exact name match, distinct enough to be safe)
-function mentionedStores(text){
-  var low=(' '+text+' ').toLowerCase(),seen={},out=[];
-  DATA.forEach(function(d){if(!d.lat||!d.n||d.n.length<6)return;
-    if(low.indexOf(d.n.toLowerCase())>=0){var k=(d.lic||d.n);if(!seen[k]){seen[k]=1;out.push(d);}}});
-  return out.slice(0,12);
-}
-function appendStoreChips(bubEl,text){
-  var stores=mentionedStores(text);if(!stores.length)return;
-  var wrap=document.createElement('div');wrap.className='addchips';
-  wrap.innerHTML='<div class="aclabel">Add to route</div>';
-  stores.forEach(function(d){var b=document.createElement('button');b.className='addchip';b.textContent='+ '+d.n;
-    b.onclick=function(){window.addRoute(d.lic||d.n,d);b.textContent='✓ '+d.n;b.disabled=true;b.classList.add('done');};wrap.appendChild(b);});
-  if(stores.length>1){var all=document.createElement('button');all.className='addchip all';all.textContent='+ Add all '+stores.length;
-    all.onclick=function(){stores.forEach(function(d){window.addRoute(d.lic||d.n,d);});all.textContent='✓ Added all';all.disabled=true;
-      wrap.querySelectorAll('.addchip:not(.all)').forEach(function(x){x.disabled=true;x.classList.add('done');});};wrap.appendChild(all);}
-  bubEl.appendChild(wrap);
+// Inject an inline "+route" button right after EACH store the bot names, in place
+// (in the table row / list item it appears in), so you add stops as you scroll.
+function injectInlineAdds(bubEl){
+  if(!window.__storeNames){window.__storeNames=DATA.filter(function(d){return d.lat&&d.n&&d.n.length>=6;})
+    .map(function(d){return {low:d.n.toLowerCase(),len:d.n.length,d:d};}).sort(function(a,b){return b.len-a.len;});}
+  var names=window.__storeNames;
+  var w=document.createTreeWalker(bubEl,NodeFilter.SHOW_TEXT,null),q=[];
+  while(w.nextNode())q.push(w.currentNode);
+  q.forEach(function(tn){
+    var guard=0;
+    while(tn&&tn.nodeValue&&guard++<10){
+      if(tn.parentNode&&tn.parentNode.closest&&tn.parentNode.closest('.iadd'))break;
+      var low=tn.nodeValue.toLowerCase(),best=-1,bn=null;
+      for(var i=0;i<names.length;i++){var idx=low.indexOf(names[i].low);if(idx>=0&&(best<0||idx<best)){best=idx;bn=names[i];}}
+      if(best<0)break;
+      var after=tn.splitText(best+bn.low.length);
+      var btn=document.createElement('button');btn.className='iadd';btn.title='Add to route';btn.textContent='+route';
+      (function(acc){btn.onclick=function(){window.addRoute(acc.lic||acc.n,acc);btn.textContent='✓';btn.classList.add('done');btn.disabled=true;};})(bn.d);
+      tn.parentNode.insertBefore(btn,after);
+      tn=after; // continue scanning the remainder for more stores
+    }
+  });
 }
 function wireReply(d){
   d.querySelectorAll('.routebtn').forEach(function(btn){
@@ -359,7 +377,7 @@ async function botAsk(text){
     if(!res.ok)throw new Error(j.error||('HTTP '+res.status));
     var bub=wait.querySelector('.bub');bub.innerHTML=renderBot(j.reply);
     wireReply(wait);
-    appendStoreChips(bub,j.reply);
+    injectInlineAdds(bub);
     botMsgs.push({role:'assistant',content:j.reply});
   }catch(err){
     wait.querySelector('.bub').innerHTML='<span style="color:#b00">⚠ '+esc(err.message)+'</span>';
