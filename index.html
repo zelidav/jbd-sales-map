@@ -331,18 +331,23 @@ function plotRoute(ids){
 
 // Inject an inline "+route" button right after EACH store the bot names, in place
 // (in the table row / list item it appears in), so you add stops as you scroll.
+function isWordChar(c){return (c>=48&&c<=57)||(c>=97&&c<=122);} // 0-9 or a-z
+// first occurrence of `name` in `low` not glued to another word (whole-word), else -1
+function firstBoundary(low,name){var from=0,idx;while((idx=low.indexOf(name,from))>=0){
+  var b=idx>0?low.charCodeAt(idx-1):32,a=(idx+name.length)<low.length?low.charCodeAt(idx+name.length):32;
+  if(!isWordChar(b)&&!isWordChar(a))return idx;from=idx+1;}return -1;}
 function injectInlineAdds(bubEl){
-  if(!window.__storeNames){window.__storeNames=DATA.filter(function(d){return d.lat&&d.n&&d.n.length>=6;})
+  if(!window.__storeNames){window.__storeNames=DATA.filter(function(d){return d.lat&&d.n&&d.n.length>=3;})
     .map(function(d){return {low:d.n.toLowerCase(),len:d.n.length,d:d};}).sort(function(a,b){return b.len-a.len;});}
   var names=window.__storeNames;
   var w=document.createTreeWalker(bubEl,NodeFilter.SHOW_TEXT,null),q=[];
   while(w.nextNode())q.push(w.currentNode);
   q.forEach(function(tn){
     var guard=0;
-    while(tn&&tn.nodeValue&&guard++<10){
+    while(tn&&tn.nodeValue&&guard++<12){
       if(tn.parentNode&&tn.parentNode.closest&&tn.parentNode.closest('.iadd'))break;
       var low=tn.nodeValue.toLowerCase(),best=-1,bn=null;
-      for(var i=0;i<names.length;i++){var idx=low.indexOf(names[i].low);if(idx>=0&&(best<0||idx<best)){best=idx;bn=names[i];}}
+      for(var i=0;i<names.length;i++){var idx=firstBoundary(low,names[i].low);if(idx>=0&&(best<0||idx<best)){best=idx;bn=names[i];}}
       if(best<0)break;
       var after=tn.splitText(best+bn.low.length);
       var btn=document.createElement('button');btn.className='iadd';btn.title='Add to route';btn.textContent='+route';
