@@ -152,6 +152,7 @@ MIX["__overall__"] = {
     "fam": fam_dict(overall["fam"]),
     "mo": months_sorted(overall["mo"]),
     "range": [overall["first"], overall["last"]],
+    "top": topn(overall["prod"], 6),       # Dragonfly best-sellers (pitch list for prospects)
 }
 
 mix_js = "/*MIX_START*/\nvar MIX=" + json.dumps(MIX, separators=(",", ":")) + ";\nvar MIX_FAMS=" + json.dumps(FAM_ORDER) + ";\n/*MIX_END*/"
