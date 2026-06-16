@@ -102,6 +102,7 @@ label.tog{display:inline-flex;align-items:center;gap:5px;font-size:12px;cursor:p
   #leg{display:none}
   #route{left:8px;right:8px;width:auto;top:8px;max-height:40vh}
   #botbtn{bottom:calc(18px + env(safe-area-inset-bottom,0px));right:14px;padding:11px 15px;z-index:1500}
+  body.popupopen #mobtoggle,body.popupopen #botbtn{display:none}
   #bot{position:fixed;inset:0;left:0;right:0;top:0;bottom:0;width:100%;height:100vh;height:100dvh;max-width:none;max-height:none;border-radius:0;z-index:1700}
   #botmsgs{overscroll-behavior:contain;-webkit-overflow-scrolling:touch}
   #botq{padding-bottom:calc(9px + env(safe-area-inset-bottom,0px))}
@@ -426,6 +427,9 @@ botin.addEventListener('input',function(){this.style.height='auto';this.style.he
 var sideEl=document.getElementById('side');
 document.getElementById('mobtoggle').onclick=function(){sideEl.classList.add('open');};
 document.getElementById('sheetclose').onclick=function(){sideEl.classList.remove('open');};
+// Hide the bottom FABs while a store popup is open so they don't block its buttons
+map.on('popupopen',function(){document.body.classList.add('popupopen');});
+map.on('popupclose',function(){document.body.classList.remove('popupopen');});
 drawRoute(); // set initial route-panel visibility (hidden on mobile when empty)
 
 render(); // run last: needs FAMCOL + mix helpers (above) and attaches after bot handlers
