@@ -28,9 +28,10 @@ const ACCOUNTS = JSON.parse(readFileSync(new URL('./accounts.json', import.meta.
 
 function num(v) { return (v === null || v === undefined || v === '') ? '' : v; }
 function accountTable() {
-  const head = 'name | role | dragonfly_status | jb_tier | pistil_decile | pistil_store_rank | est_sales_vol_usd | days_since_order | hist_rev_usd | city | neighborhood | county | region | rep | poc | phone | license | lat | lng';
+  const head = 'name | role | dragonfly_status | jb_tier | pistil_decile | store_rank_90d | sales_90d_usd | sales_30d_usd | momentum_30v90_pct | trend_90v180_pct | momentum_vs_market_pct | days_since_order | hist_rev_usd | city | neighborhood | county | region | rep | poc | phone | license | lat | lng';
   const lines = ACCOUNTS.map((d) => [
-    d.n, d.role, num(d.ds), num(d.tier), num(d.dec), num(d.psr), num(d.svol), num(d.days),
+    d.n, d.role, num(d.ds), num(d.tier), num(d.dec), num(d.psr), num(d.svol), num(d.svol30),
+    num(d.mom), num(d.trend), num(d.momr), num(d.days),
     num(d.rev), d.c, d.nb, d.co, d.rg, num(d.rep), num(d.poc), num(d.ph),
     num(d.lic), (d.lat != null ? d.lat.toFixed(4) : ''), (d.lng != null ? d.lng.toFixed(4) : ''),
   ].join(' | '));
@@ -81,7 +82,9 @@ FIELD MEANINGS
   - "New Prospect" — licensed dispensary we don't yet sell to.
   - "JB Tier 1/2/3" — priority targets for the Jerome Baker glass program (Tier 1 = highest).
 - pistil_decile: market-quality ranking from external Pistil data. 1 = TOP decile (best opportunity); 10 = weakest. Lower is better. Blank = unranked.
-- pistil_store_rank: statewide Pistil performance rank by estimated sales (1 = best-performing store in NY). Lower is better. est_sales_vol_usd is the matching estimated sales volume. Blank = store not in the latest rank export. Use these for "best/top performing stores" and "who sells the most" questions; cite the rank # and est sales.
+- store_rank_90d: statewide Pistil performance rank over the trailing 90 days (1 = best-performing store in NY). Lower is better. sales_90d_usd / sales_30d_usd are estimated sell-through over those windows. Blank = not in the latest rank export.
+- momentum_30v90_pct: how the last 30 days' monthly run-rate compares to the 90-day pace (+ = the store is speeding up). trend_90v180_pct: 90-day vs 180-day pace (medium-term direction).
+- momentum_vs_market_pct (MOST ACTIONABLE): the store's 30-vs-90 momentum minus the market median. The whole NY market is growing, so judge momentum RELATIVE to this: positive = accelerating FASTER than the typical store (a rising account — push/upsell, secure shelf space); negative = growing slower than the market or cooling (at-risk even if still up YoY — investigate, defend). Use these for "who's hot / accelerating / cooling / slipping" and momentum questions, and weave a momentum read into sales tips (e.g. "rank #14 and +21% vs market — accelerating, prioritize").
 - days_since_order: days since last Dragonfly order (Dragonfly accounts only).
 - hist_rev_usd: historical Dragonfly revenue with this account.
 - region/county/city/neighborhood: geography for routing.
