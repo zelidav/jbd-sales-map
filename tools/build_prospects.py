@@ -97,6 +97,9 @@ def main():
     html = open(HTML, encoding="utf-8").read()
     m = re.search(r"var DATA=(\[.*?\]);", html, re.S)
     data = json.loads(m.group(1))
+    # strip any prior prospects FIRST so re-runs are idempotent (they must not count
+    # as "already on map" or we'd shrink the set each run).
+    data = [d for d in data if not d.get("prospect")]
     map_lic = {d.get("lic") for d in data if d.get("lic")}
 
     # door name-sets to detect "already on map"
@@ -183,9 +186,7 @@ def main():
     if "--dry" in sys.argv:
         print("\n--dry: no write.")
         return
-    # remove any prior prospects (idempotent) then append fresh
-    data = [d for d in data if not d.get("prospect")]
-    data += prospects
+    data += prospects  # prior prospects already stripped above
     new = html[:m.start(1)] + json.dumps(data, ensure_ascii=False) + html[m.end(1):]
     open(HTML, "w", encoding="utf-8").write(new)
     print(f"\nWrote {len(prospects)} prospects into index.html (total doors now {len(data)}).")
