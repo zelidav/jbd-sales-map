@@ -171,6 +171,102 @@ app.post('/chat', async (req, res) => {
   }
 });
 
+// ===== Route + visit logging =====
+// Central log of every route a rep sends to Google Maps / exports, and a visit
+// record per customer on export. Routes are emitted to Cloud Logging (searchable
+// in GCP) and kept in a best-effort in-memory ring buffer for quick review via
+// GET /logs. If HUBSPOT_TOKEN is set, exported visits are also written to HubSpot
+// as a "last contacted"-style note on the matching company (by license number).
+const RING_MAX = 500;
+const routeRing = [];
+const visitRing = [];
+const HUBSPOT_TOKEN = process.env.HUBSPOT_TOKEN || '';
+
+function pushRing(ring, item) { ring.unshift(item); if (ring.length > RING_MAX) ring.length = RING_MAX; }
+
+app.post('/route-log', (req, res) => {
+  const p = req.body || {};
+  if (!Array.isArray(p.stops) || !p.stops.length) return res.status(400).json({ error: 'no stops' });
+  const rec = {
+    rep: String(p.rep || '').slice(0, 80),
+    channel: String(p.channel || 'gmaps').slice(0, 40),
+    ts: typeof p.ts === 'string' ? p.ts.slice(0, 40) : new Date().toISOString(),
+    start: p.start ? String(p.start).slice(0, 200) : null,
+    end: p.end ? String(p.end).slice(0, 200) : null,
+    miles: Number(p.miles) || 0,
+    stops: p.stops.slice(0, 50).map((s) => ({
+      order: s.order, name: String(s.name || '').slice(0, 120), lic: String(s.lic || '').slice(0, 40),
+      city: String(s.city || '').slice(0, 80), role: String(s.role || '').slice(0, 40),
+    })),
+    mapsUrl: String(p.mapsUrl || '').slice(0, 2000),
+  };
+  pushRing(routeRing, rec);
+  console.log('ROUTE_LOG ' + JSON.stringify(rec));
+  res.json({ ok: true });
+});
+
+app.post('/visit-log', async (req, res) => {
+  const p = req.body || {};
+  if (!Array.isArray(p.visits) || !p.visits.length) return res.status(400).json({ error: 'no visits' });
+  const rec = {
+    rep: String(p.rep || '').slice(0, 80),
+    date: String(p.date || '').slice(0, 10),
+    ts: typeof p.ts === 'string' ? p.ts.slice(0, 40) : new Date().toISOString(),
+    source: String(p.source || 'route_export').slice(0, 40),
+    visits: p.visits.slice(0, 50).map((v) => ({
+      lic: String(v.lic || '').slice(0, 40), name: String(v.name || '').slice(0, 120),
+      city: String(v.city || '').slice(0, 80), order: v.order,
+    })),
+  };
+  pushRing(visitRing, rec);
+  console.log('VISIT_LOG ' + JSON.stringify(rec));
+  let hubspot = 'skipped (no HUBSPOT_TOKEN)';
+  if (HUBSPOT_TOKEN) {
+    try { hubspot = await logVisitsToHubspot(rec); }
+    catch (e) { hubspot = 'error: ' + (e.message || e); console.error('hubspot visit-log error:', e); }
+  }
+  res.json({ ok: true, hubspot });
+});
+
+// Best-effort review endpoint (this instance only — Cloud Logging is the source of truth).
+app.get('/logs', (req, res) => {
+  const n = Math.min(Number(req.query.n) || 100, RING_MAX);
+  res.json({ routes: routeRing.slice(0, n), visits: visitRing.slice(0, n), note: 'In-memory per-instance buffer; full history is in Cloud Logging (filter ROUTE_LOG / VISIT_LOG).' });
+});
+
+async function hs(path, method, body) {
+  const r = await fetch('https://api.hubapi.com' + path, {
+    method,
+    headers: { Authorization: 'Bearer ' + HUBSPOT_TOKEN, 'Content-Type': 'application/json' },
+    body: body ? JSON.stringify(body) : undefined,
+  });
+  if (!r.ok) throw new Error(`HubSpot ${method} ${path} -> ${r.status} ${(await r.text()).slice(0, 200)}`);
+  return r.json();
+}
+
+// For each visited company, stamp a "Last sales visit" note (matched by license number).
+async function logVisitsToHubspot(rec) {
+  let matched = 0, missed = 0;
+  for (const v of rec.visits) {
+    if (!v.lic) { missed++; continue; }
+    const found = await hs('/crm/v3/objects/companies/search', 'POST', {
+      filterGroups: [{ filters: [{ propertyName: 'license_number', operator: 'EQ', value: v.lic }] }],
+      properties: ['name'], limit: 1,
+    }).catch(() => null);
+    const company = found?.results?.[0];
+    if (!company) { missed++; continue; }
+    const note = await hs('/crm/v3/objects/notes', 'POST', {
+      properties: {
+        hs_timestamp: rec.ts,
+        hs_note_body: `Field sales visit${rec.rep ? ' by ' + rec.rep : ''} on ${rec.date} (route stop #${v.order}). Logged from the Dragonfly × JB field map.`,
+      },
+    });
+    await hs(`/crm/v3/objects/notes/${note.id}/associations/companies/${company.id}/note_to_company`, 'PUT');
+    matched++;
+  }
+  return `companies updated: ${matched}, unmatched: ${missed}`;
+}
+
 app.listen(PORT, () => {
-  console.log(`JBD sales bot on :${PORT} (model=${MODEL}, accounts=${ACCOUNTS.length})`);
+  console.log(`JBD sales bot on :${PORT} (model=${MODEL}, accounts=${ACCOUNTS.length}, hubspot=${HUBSPOT_TOKEN ? 'on' : 'off'})`);
 });
