@@ -246,7 +246,7 @@ function perfBlock(d){
   s+='<br><span style="font-size:10px;font-weight:700;color:'+(d.momr>=8?'#d9531e':(d.momr<=-8?'#3a6ea5':'#777'))+'">'+v+' ('+(d.momr>=0?'+':'')+d.momr+'% vs median)</span>';}
  return s+'</div>';}
 // gold-ringed marker for top performers so the best stores pop on the map
-function dotRanked(c){return L.divIcon({className:'',html:'<div style="width:15px;height:15px;border-radius:50%;background:'+c+';border:2px solid #c9a24b;box-shadow:0 0 0 2px #fff,0 0 5px rgba(201,162,75,.9)"></div>',iconSize:[15,15]});}
+function dotRanked(c){return L.divIcon({className:'',html:'<div style="width:20px;height:20px;border-radius:50%;background:'+c+';border:4px solid #d4af37;box-shadow:0 0 0 2px #fff,0 0 0 5px rgba(212,175,55,.55),0 0 12px 3px rgba(212,175,55,.95)"></div>',iconSize:[28,28],iconAnchor:[14,14]});}
 function prosTag(d){if(!d||!d.prospect)return '';return '<span class="pros" title="Top performer not yet in our pipeline — surfaced from Pistil sales rank. A lead to pursue.">📈 Prospect</span>';}
 function opTag(d){if(!d||!d.op)return '';
  if(d.op==='Active')return '<span class="opb open" title="Operational per NY OCM'+(d.opened?' — opened '+d.opened:'')+'">✓ Open</span>';
