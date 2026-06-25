@@ -124,14 +124,22 @@ def main():
         if d.get("mom") is not None:
             momn += 1
     # The whole NY market is growing, so raw momentum is positive almost everywhere.
-    # Market-relativize: momr = store momentum minus the median, so a rep sees who is
-    # accelerating FASTER (or slower) than the typical store. This is the actionable signal.
-    moms = sorted(d["mom"] for d in data if d.get("mom") is not None)
-    med = moms[len(moms) // 2] if moms else 0
+    # Market-relativize: momr = store momentum minus the STATEWIDE median (computed over
+    # every store in the rank export, not just mapped ones), so a rep sees who is
+    # accelerating FASTER (or slower) than the typical NY store. Persisted to _cache so
+    # build_prospects.py uses the identical baseline.
+    mkt = []
+    for st, r90 in d90.items():
+        r30 = d30.get(st)
+        if r30 and r90["vol"]:
+            mkt.append(round(100 * (r30["vol"] / (r90["vol"] / 3.0) - 1)))
+    mkt.sort()
+    med = mkt[len(mkt) // 2] if mkt else 0
+    json.dump({"mom_median": med}, open(os.path.join(ROOT, "tools", "_cache", "market_baseline.json"), "w"))
     for d in data:
         if d.get("mom") is not None:
             d["momr"] = d["mom"] - med
-    print(f"market median 30d-vs-90d momentum: {med}% (momr is relative to this)")
+    print(f"statewide median 30d-vs-90d momentum: {med}% (momr is relative to this)")
 
     ranked = sorted([d for d in data if d.get("psr")], key=lambda d: d["psr"])
     print(f"\nmatched {matched}/{len(data)} doors to a 90-day rank; momentum on {momn}.")

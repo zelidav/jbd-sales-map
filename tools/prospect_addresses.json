@@ -1,0 +1,13 @@
+{
+ "_comment": "Web-resolved addresses for top off-map performers whose Pistil name doesn't match OCM by name (or whose chain needs per-location addresses). Keyed by exact Pistil store name. Used by build_prospects.py. Add more as you verify them.",
+ "Canna Blooms - Farmingville": {"a":"2400 N Ocean Ave","c":"Farmingville","co":"Suffolk","rg":"Long Island","zip":"11738"},
+ "The Travel Agency Fifth Avenue": {"a":"587 5th Ave","c":"New York","co":"New York","rg":"New York City","zip":"10017"},
+ "The Travel Agency Union Square": {"a":"835 Broadway","c":"New York","co":"New York","rg":"New York City","zip":"10003","lic":"OCM-CAURD-23-000003"},
+ "The Plug": {"a":"428 Rogers Ave","c":"Brooklyn","co":"Kings","rg":"Brooklyn","zip":"11225"},
+ "RISE Dispensaries Henrietta - Adult Use": {"a":"556 W Jefferson Rd","c":"Henrietta","co":"Monroe","rg":"Finger Lakes","zip":"14623"},
+ "RISE Dispensaries East Syracuse - Adult Use": {"a":"6701 Manlius Center Rd","c":"East Syracuse","co":"Onondaga","rg":"Central New York","zip":"13057"},
+ "The Daily Green (Rec)": {"a":"719 7th Ave","c":"New York","co":"New York","rg":"New York City","zip":"10036"},
+ "Flynnstoned Cannabis - Binghamton": {"a":"1143 Front St","c":"Binghamton","co":"Broome","rg":"Southern Tier","zip":"13905"},
+ "Flynnstoned Cannabis - North Syracuse": {"a":"3711 Brewerton Rd","c":"North Syracuse","co":"Onondaga","rg":"Central New York","zip":"13212"},
+ "Flynnstoned Cannabis - Midtown": {"a":"820 2nd Ave","c":"New York","co":"New York","rg":"New York City","zip":"10017"}
+}

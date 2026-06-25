@@ -28,9 +28,9 @@ const ACCOUNTS = JSON.parse(readFileSync(new URL('./accounts.json', import.meta.
 
 function num(v) { return (v === null || v === undefined || v === '') ? '' : v; }
 function accountTable() {
-  const head = 'name | role | dragonfly_status | jb_tier | pistil_decile | store_rank_90d | sales_90d_usd | sales_30d_usd | momentum_30v90_pct | trend_90v180_pct | momentum_vs_market_pct | days_since_order | hist_rev_usd | city | neighborhood | county | region | rep | poc | phone | license | lat | lng';
+  const head = 'name | role | off_map_prospect | dragonfly_status | jb_tier | pistil_decile | store_rank_90d | sales_90d_usd | sales_30d_usd | momentum_30v90_pct | trend_90v180_pct | momentum_vs_market_pct | days_since_order | hist_rev_usd | city | neighborhood | county | region | rep | poc | phone | license | lat | lng';
   const lines = ACCOUNTS.map((d) => [
-    d.n, d.role, num(d.ds), num(d.tier), num(d.dec), num(d.psr), num(d.svol), num(d.svol30),
+    d.n, d.role, d.prospect ? 'yes' : '', num(d.ds), num(d.tier), num(d.dec), num(d.psr), num(d.svol), num(d.svol30),
     num(d.mom), num(d.trend), num(d.momr), num(d.days),
     num(d.rev), d.c, d.nb, d.co, d.rg, num(d.rep), num(d.poc), num(d.ph),
     num(d.lic), (d.lat != null ? d.lat.toFixed(4) : ''), (d.lng != null ? d.lng.toFixed(4) : ''),
@@ -80,6 +80,7 @@ FIELD MEANINGS
   - "Dragonfly Slipping" — was ordering, order cadence is dropping (at-risk).
   - "Dragonfly Fallow" — went dark, no recent orders (needs reactivation).
   - "New Prospect" — licensed dispensary we don't yet sell to.
+- off_map_prospect = "yes": a high-performing store (good store_rank_90d) that we do NOT currently serve — surfaced from the Pistil sales rank as a lead. These are prime targets: cite the rank, est sales, and momentum, and recommend pursuing the accelerating ones first.
   - "JB Tier 1/2/3" — priority targets for the Jerome Baker glass program (Tier 1 = highest).
 - pistil_decile: market-quality ranking from external Pistil data. 1 = TOP decile (best opportunity); 10 = weakest. Lower is better. Blank = unranked.
 - store_rank_90d: statewide Pistil performance rank over the trailing 90 days (1 = best-performing store in NY). Lower is better. sales_90d_usd / sales_30d_usd are estimated sell-through over those windows. Blank = not in the latest rank export.
