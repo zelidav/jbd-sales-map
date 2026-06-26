@@ -46,6 +46,31 @@ let ORDERS = null;
 try { ORDERS = JSON.parse(readFileSync(new URL('./orders_summary.json', import.meta.url))); }
 catch { console.warn('orders_summary.json not found — product-mix knowledge disabled'); }
 
+// ----- Statewide brand-rank intelligence (Pistil brand exports) -----
+let BRAND = null;
+try { BRAND = JSON.parse(readFileSync(new URL('./brand_intel.json', import.meta.url))); }
+catch { console.warn('brand_intel.json not found — brand intelligence disabled'); }
+
+function brandText() {
+  if (!BRAND) return '';
+  let s = 'STATEWIDE BRAND-RANK INTELLIGENCE (Pistil, all NY licensed brands).\n';
+  if (BRAND.dragonfly_trajectory?.length) {
+    s += 'Dragonfly (our VALUE brand) trajectory — note the recent slip: ' +
+      BRAND.dragonfly_trajectory.map((t) => `${t.window} #${t.rank} ($${t.vol.toLocaleString()}, ${t.dist_pct}% of stores)`).join(' · ') + '.\n';
+    if (BRAND.dragonfly_fpr_rank) s += `Dragonfly ranks #${BRAND.dragonfly_fpr_rank} within flower+preroll (its core category, stronger than overall).\n`;
+  }
+  if (BRAND.top_brands_flower_preroll?.length) {
+    s += "JB's premium flower/preroll competitive set (top brands, with avg price + distribution): " +
+      BRAND.top_brands_flower_preroll.slice(0, 12).map((b) => `${b.brand} ($${b.vol.toLocaleString()}, $${b.price}, ${b.dist_pct}%)`).join('; ') + '.\n';
+  }
+  if (BRAND.top_brands_all?.length) {
+    s += 'Top brands overall: ' + BRAND.top_brands_all.slice(0, 10).map((b) => `${b.brand} (#${b.rank}, ${b.dist_pct}%)`).join('; ') + '.\n';
+  }
+  s += 'Use this for brand-landscape, competitive-positioning, and Dragonfly-trajectory questions. JB competes at the premium end (vs Dank By Definition, Find, Rythm, Leal); Dragonfly competes on value/price.\n';
+  return s;
+}
+const BRAND_TEXT = brandText();
+
 function pct(fam) {
   const tot = Object.values(fam).reduce((a, b) => a + b, 0) || 1;
   return Object.entries(fam).sort((a, b) => b[1] - a[1])
@@ -164,7 +189,7 @@ app.post('/chat', async (req, res) => {
       system: [
         { type: 'text', text: INSTRUCTIONS },
         // Cache the big data block so follow-up questions are cheap.
-        { type: 'text', text: 'ACCOUNT DATA (' + ACCOUNTS.length + ' doors):\n' + TABLE + (ORDERS_TEXT ? '\n\n' + ORDERS_TEXT : ''), cache_control: { type: 'ephemeral' } },
+        { type: 'text', text: 'ACCOUNT DATA (' + ACCOUNTS.length + ' doors):\n' + TABLE + (ORDERS_TEXT ? '\n\n' + ORDERS_TEXT : '') + (BRAND_TEXT ? '\n\n' + BRAND_TEXT : ''), cache_control: { type: 'ephemeral' } },
       ],
       messages,
     });
