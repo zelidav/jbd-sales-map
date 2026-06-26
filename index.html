@@ -118,6 +118,25 @@ label.tog{display:inline-flex;align-items:center;gap:5px;font-size:12px;cursor:p
 .lrow .lbar{flex:1;height:15px;background:#f0efe9;border-radius:8px;overflow:hidden;position:relative}
 .lrow .lbar > i{display:block;height:100%;background:linear-gradient(90deg,#d9b441,#b8860b);border-radius:8px}
 .lrow .lv{flex:0 0 84px;text-align:right;font-size:11px;color:#555;font-variant-numeric:tabular-nums}
+/* store analysis modal */
+#anmodal{display:none;position:fixed;inset:0;z-index:2100;background:rgba(0,0,0,.5);align-items:center;justify-content:center;padding:16px}
+#anmodal .acard{background:#fff;border-radius:12px;max-width:680px;width:100%;max-height:88vh;display:flex;flex-direction:column;overflow:hidden;box-shadow:0 14px 46px rgba(0,0,0,.4)}
+#anmodal .ahdr{background:var(--ink);color:#fff;padding:11px 15px;display:flex;justify-content:space-between;align-items:center;font-size:14px}
+#anmodal #anx{background:rgba(255,255,255,.16);border:none;color:#fff;border-radius:7px;width:30px;height:30px;font-size:18px;cursor:pointer}
+#anmodal .abody{overflow-y:auto;padding:16px 18px;font-size:13px;line-height:1.55;color:#23302a}
+#anmodal .abody h2{margin:0 0 2px;font-size:18px}
+#anmodal .asub{color:#6a756d;font-size:12px;margin-bottom:10px}
+#anmodal .averdict{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:12px}
+#anmodal .averdict span{font-size:11px;font-weight:700;padding:3px 9px;border-radius:14px;color:#fff}
+#anmodal .asec{margin:12px 0;padding-top:10px;border-top:1px solid #eef0ec}
+#anmodal .asec b.lbl{display:block;font-size:10px;text-transform:uppercase;letter-spacing:.6px;color:#8a958c;margin-bottom:4px}
+#anmodal .arec{background:#f3f8f3;border-left:3px solid #1f7a44;padding:9px 12px;border-radius:0 8px 8px 0;margin-top:4px}
+#anmodal .asrc{font-size:11px;color:#6a756d}
+#anmodal .asrc li{margin:3px 0}
+#anmodal .abtns{display:flex;gap:8px;margin-top:14px;flex-wrap:wrap}
+#anmodal .abtns button{flex:1;min-width:130px;padding:9px;border-radius:8px;border:1px solid var(--ink);background:#fff;color:var(--ink);font-weight:700;font-size:12px;cursor:pointer}
+#anmodal .abtns button.pri{background:var(--ink);color:#fff}
+.card .ana{position:absolute;top:8px;right:34px;font-size:13px;color:#8a958c;cursor:pointer;font-weight:700}
 /* mobile controls (hidden on desktop) */
 #sheetclose{display:none;position:absolute;top:9px;right:10px;background:rgba(255,255,255,.18);border:none;color:#fff;width:36px;height:36px;border-radius:8px;font-size:24px;line-height:1;cursor:pointer;align-items:center;justify-content:center;z-index:5;touch-action:manipulation}
 #mobtoggle{display:none;position:absolute;z-index:1500;background:var(--ink);color:#fff;border:none;border-radius:26px;padding:13px 20px;font-size:14px;font-weight:700;box-shadow:0 4px 16px rgba(0,0,0,.4);align-items:center;gap:8px;cursor:pointer;touch-action:manipulation}
@@ -196,6 +215,7 @@ label.tog{display:inline-flex;align-items:center;gap:5px;font-size:12px;cursor:p
 <div class="act act2"><button id="rexport">⬇ HubSpot CSV</button><button id="rhist">🕘 History</button><button id="rclear">Clear</button></div></div>
 <div id="rhistmodal"><div class="hcard"><div class="hhdr"><b>Route history (this device)</b><button id="rhistx" aria-label="Close">×</button></div><div class="hbody"></div></div></div>
 <div id="rankmodal"><div class="lcard"><div class="lhdr"><b>🏆 Pistil Store Rank — performance leaderboard</b><button id="rankx" aria-label="Close">×</button></div><div class="lsub"></div><div class="lbody"></div></div></div>
+<div id="anmodal"><div class="acard"><div class="ahdr"><b>📋 Store analysis</b><button id="anx" aria-label="Close">×</button></div><div class="abody"></div></div></div>
 <div class="leg" id="leg"></div>
 <button id="botbtn">💬 Ask the <span class="g">Sales Bot</span></button>
 <div id="bot">
@@ -248,6 +268,69 @@ function fpBlock(d){var s='<div style="margin-top:6px;border-top:1px solid #eee;
  if(d.jbt)s+='<br><span style="font-size:10.5px;font-weight:700;color:#0f4c6b">💎 JB premium target — Tier '+d.jbt+'</span> <span style="font-size:10px;color:#777">(fit '+d.jbfit+'/100 · place 7g jars + 1g prerolls)</span>';
  if(d.dft)s+='<br><span style="font-size:10.5px;font-weight:700;color:#5b6e1f">💰 Dragonfly value target — Tier '+d.dft+'</span> <span style="font-size:10px;color:#777">(fit '+d.dflyfit+'/100 · value volume play)</span>';
  return s+'</div>';}
+/* ===== Expanded per-store analysis (narrative + sources) ===== */
+function fmtD(n){return '$'+Math.round(n).toLocaleString();}
+function analysisHtml(d){
+ var lic=d.lic, mix=lic&&window.MIX&&MIX[lic], src=[], add=function(x){if(src.indexOf(x)<0)src.push(x);};
+ var H='<h2>'+esc(d.n)+'</h2><div class="asub">'+esc([d.a,d.c,(d.co?d.co+' County':''),d.rg].filter(Boolean).join(' · '))+(lic?' · '+esc(lic):'')+'</div>';
+ var chips=[];
+ if(d.jbt)chips.push(['💎 JB premium · T'+d.jbt,'#0f4c6b']);
+ if(d.dft)chips.push(['💰 Dragonfly value · T'+d.dft,'#5b6e1f']);
+ if((''+d.role).indexOf('Dragonfly')==0)chips.push([d.role.replace('Dragonfly ','Dfly '),COLORS[d.role]]);
+ else if(/JB Tier/.test(d.role||''))chips.push([d.role,COLORS[d.role]]);
+ if(d.prospect)chips.push(['📈 Off-map prospect','#5b3fa0']);
+ if(d.op==='Active')chips.push(['✓ Open','#1f7a44']);
+ if(chips.length)H+='<div class="averdict">'+chips.map(function(c){return '<span style="background:'+(c[1]||'#14241a')+'">'+esc(c[0])+'</span>';}).join('')+'</div>';
+ function sec(l,b){return '<div class="asec"><b class="lbl">'+l+'</b>'+b+'</div>';}
+ // Positioning
+ if(d.fpvol){var tier=d.fpprice>=40?'a premium':(d.fpprice>=30?'a mid-premium':'a value');
+  var b='<b>'+esc(d.n)+'</b> reads as '+tier+' flower-and-preroll store — average flower/preroll ticket <b>$'+d.fpprice+'</b>, moving '+(d.fpunits||0).toLocaleString()+' units ('+fmtD(d.fpvol)+') over the trailing 90 days.';
+  if(d.jbt)b+=' That premium profile makes it a <b>Tier '+d.jbt+' JB target</b> (fit '+d.jbfit+'/100) — strong placement for JB’s 7g jars ($65–75) and 1g prerolls ($13–14).';
+  if(d.dft)b+=' On the value side it scores a <b>Tier '+d.dft+' Dragonfly target</b> (fit '+d.dflyfit+'/100).';
+  H+=sec('Positioning',b); add('Pistil Flower+Preroll store ranking (30 / 90-day) — Jun 2026');}
+ // Performance & momentum
+ if(d.psr){var b='Ranked <b>#'+d.psr+'</b> of ~600 NY dispensaries by 90-day sales ('+fmtD(d.svol)+').';
+  if(d.svol30&&d.svol180)b+=' Monthly run-rate '+fmtD(d.svol180/6)+' → '+fmtD(d.svol/3)+' → '+fmtD(d.svol30)+' across the 180/90/30-day windows.';
+  if(d.momr!=null)b+=' Momentum <b>'+(d.momr>=0?'+':'')+d.momr+'% vs the market median</b> — '+(d.momr>=8?'accelerating faster than the typical store':(d.momr<=-8?'cooling relative to the market':'tracking the market'))+'.';
+  H+=sec('Performance & momentum',b); add('Pistil Store Ranking (30 / 90 / 180-day) — Jun 2026');}
+ // Flower/preroll velocity
+ if(d.fpvel!=null){var b='Flower/preroll velocity is <b>'+(d.fpvel>=0?'+':'')+d.fpvel+'% vs the market median</b>. The category is cooling market-wide (~−11%), so '+(d.fpvel>=0?'holding above the pack is a real strength':'this is roughly in line with the broader slowdown')+'.';
+  H+=sec('Flower / preroll velocity',b);}
+ // Relationship & history
+ var rel='';
+ if(mix){rel+='Active in our order data: <b>'+fmtD(mix.rev)+'</b> across '+mix.o+' order'+(mix.o==1?'':'s')+(mix.last?', last '+esc(mix.last):'')+'.';
+  var fam=mix.fam,tot=0;for(var kk in fam)tot+=fam[kk];
+  if(tot){var t3=Object.keys(fam).filter(function(k){return fam[k];}).sort(function(a,b){return fam[b]-fam[a];}).slice(0,3).map(function(k){return k+' '+Math.round(fam[k]/tot*100)+'%';}).join(', ');rel+=' Mix: '+esc(t3)+'.';}
+  if(mix.top&&mix.top.length)rel+=' Top SKUs: '+mix.top.slice(0,3).map(function(t){return esc(t[0]);}).join('; ')+'.';
+  add('Dragonfly wholesale orders (Nabis line-item export)');}
+ else if((''+d.role).indexOf('Dragonfly')==0)rel+='Listed as <b>'+esc(d.role)+'</b> with no recent orders on record — '+(/Fallow/.test(d.role)?'went dark; a reactivation play':'cadence slipping; defend the account')+'.';
+ else if(d.prospect)rel+='<b>Not yet a customer</b> — surfaced from the sales rank as an off-map lead. Whitespace for both lines'+(d.jbt?', JB first given the premium profile':'')+'.';
+ else rel+='No Dragonfly order history on record.';
+ if(d.dec)rel+=' Pistil market decile <b>D'+d.dec+'</b> ('+(d.dec<=3?'top-tier':(d.dec<=6?'mid':'lower'))+' market quality).';
+ H+=sec('Relationship & history',rel);
+ // Recommended move
+ var rec;
+ if(d.jbt==1)rec='Prioritize for Jerome Baker — a premium flower/preroll powerhouse. Lead with 7g jars + 1g prerolls; it already stocks the premium set (Dank By Definition, Find, Rythm), so JB slots in alongside.';
+ else if(d.jbt)rec='Solid JB Tier '+d.jbt+' target — pitch the premium line next visit.';
+ else if(d.dft==1)rec='Strong Dragonfly value play — high-unit and value-priced. Push the $6 PR / $20 3.5g line on volume.';
+ else if(d.dft)rec='Dragonfly value target (Tier '+d.dft+') — the value line fits the price profile.';
+ else rec='Lower priority for both lines on the current flower/preroll signal; revisit if rank or velocity improves.';
+ if(/Slipping|Fallow/.test(d.role||''))rec='⚠ '+rec+' Also at-risk on Dragonfly — reactivation is the immediate move.';
+ H+=sec('Recommended move','<div class="arec">'+rec+'</div>');
+ // Sources
+ add('NY OCM Licenses — operational status + verified address (Jun 2026)');
+ add('Pistil Brand Ranking — premium competitor context (Jun 2026)');
+ if(d.dec)add('Pistil market decile');
+ H+=sec('Sources','<ul class="asrc">'+src.map(function(s){return '<li>'+esc(s)+'</li>';}).join('')+'</ul>');
+ H+='<div class="abtns"><button class="pri" onclick="botDeepDive(\''+esc(lic||d.n)+'\')">💬 Ask the bot for a deeper take</button><button onclick="document.getElementById(\'anmodal\').style.display=\'none\'">Close</button></div>';
+ return H;}
+window.showAnalysis=function(id){var d=DATA.find(function(x){return (x.lic||x.n)==id;});if(!d)return;
+ document.querySelector('#anmodal .abody').innerHTML=analysisHtml(d);document.getElementById('anmodal').style.display='flex';};
+window.botDeepDive=function(id){var d=DATA.find(function(x){return (x.lic||x.n)==id;});if(!d)return;
+ document.getElementById('anmodal').style.display='none';document.getElementById('botbtn').click();
+ botAsk('Give me a full strategic analysis of '+d.n+' ('+(d.lic||'')+'): JB premium vs Dragonfly value fit, flower/preroll performance and momentum, relationship status, and the single best next move. Cite the numbers.');};
+document.getElementById('anx').onclick=function(){document.getElementById('anmodal').style.display='none';};
+document.getElementById('anmodal').addEventListener('click',function(e){if(e.target===this)this.style.display='none';});
 function perfBlock(d){
  var s='<div style="margin-top:6px;border-top:1px solid #eee;padding-top:5px">'
   +'<b style="color:#8a6d1f">🏆 Pistil Store Rank #'+d.psr+'</b> <span style="color:#777">(90-day)</span>';
@@ -290,7 +373,8 @@ function popup(d){var s='<b>'+d.n+'</b> '+decTag(d)+rosinTag(d.lic)+psrTag(d)+mo
  if(d.poc)s+='POC: '+d.poc+(d.ph?' · '+d.ph:'')+'<br>';
  if(d.role==='New Prospect')s+=prospectInfo(d);
  s+=mixHtml(d.lic);
- s+='<a href="#" onclick="addRoute(\''+(d.lic||d.n)+'\');return false;">+ add to route</a>';return s;}
+ s+='<a href="#" onclick="addRoute(\''+(d.lic||d.n)+'\');return false;">+ add to route</a>';
+ s+=' &nbsp;·&nbsp; <a href="#" onclick="showAnalysis(\''+(d.lic||d.n)+'\');return false;">📋 Full analysis &amp; sources</a>';return s;}
 function chips(el,items,set){items.forEach(function(it){var c=document.createElement('span');c.className='chip on';c.textContent=it;c.style.background=COLORS[it]||'#14241a';
  c.onclick=function(){if(set.has(it)){set.delete(it);c.classList.remove('on');c.style.background='#fff';c.style.color='#333';}else{set.add(it);c.classList.add('on');c.style.background=COLORS[it]||'#14241a';c.style.color='#fff';}render();};el.appendChild(c);});}
 chips(document.getElementById('roleChips'),ROLES,activeRoles);
@@ -341,12 +425,13 @@ function render(){cluster.clearLayers();markers={};var vis=visible();var listEl=
  else vis.sort(function(a,b){return (a.dec||11)-(b.dec||11)||(b.rev||0)-(a.rev||0);});
  vis.slice(0,400).forEach(function(d){var card=document.createElement('div');card.className='card';
   var sub=d.role.indexOf('Dragonfly')==0?(d.days!=null?d.days+'d since order'+(d.rev!=null?' · $'+d.rev.toLocaleString():''):''):(d.tier||d.role);
-  card.innerHTML='<div class="nm">'+d.n+' '+decTag(d)+rosinTag(d.lic)+psrTag(d)+momTag(d)+jbTag(d)+dfTag(d)+prosTag(d)+opTag(d)+'</div><div class="meta"><span class="badge" style="background:'+COLORS[d.role]+'">'+d.role+'</span>'+(d.c||'')+(d.nb?' · '+d.nb:'')+'<br>'+sub+mixTag(d.lic)+'</div><div class="addr" title="add to route">＋</div>';
+  card.innerHTML='<div class="nm">'+d.n+' '+decTag(d)+rosinTag(d.lic)+psrTag(d)+momTag(d)+jbTag(d)+dfTag(d)+prosTag(d)+opTag(d)+'</div><div class="meta"><span class="badge" style="background:'+COLORS[d.role]+'">'+d.role+'</span>'+(d.c||'')+(d.nb?' · '+d.nb:'')+'<br>'+sub+mixTag(d.lic)+'</div><div class="ana" title="full analysis & sources">📋</div><div class="addr" title="add to route">＋</div>';
   card.onclick=function(){if(window.innerWidth<=760)document.getElementById('side').classList.remove('open');
    var mk=markers[d.lic||d.n];
    if(mk&&cluster.zoomToShowLayer){cluster.zoomToShowLayer(mk,function(){mk.openPopup();});}
    else{map.setView([d.lat,d.lng],14);if(mk)mk.openPopup();}};
-  card.querySelector('.addr').onclick=function(e){e.stopPropagation();addRoute(d.lic||d.n,d);};listEl.appendChild(card);});}
+  card.querySelector('.addr').onclick=function(e){e.stopPropagation();addRoute(d.lic||d.n,d);};
+  card.querySelector('.ana').onclick=function(e){e.stopPropagation();showAnalysis(d.lic||d.n);};listEl.appendChild(card);});}
 window.addRoute=function(id,d){d=d||DATA.find(x=>(x.lic||x.n)==id);if(!d)return;if(route.find(r=>(r.lic||r.n)==id))return;route.push(d);
  if(startPt)optimizeOrder();else drawRoute();}; // auto-order by proximity from start
 var routeLine=null,startPt=null,endPt=null,startMarker=null,endMarker=null;
