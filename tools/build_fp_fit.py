@@ -116,10 +116,12 @@ def main():
         used.add(s)
         matched += 1
         rv = relv.get(s, 0)
-        d["fpvol"] = v["vol"]; d["fpunits"] = v["units"]; d["fpprice"] = round(v["avgp"], 1); d["fpvel"] = rv
+        d["fpvol"] = v["vol"]; d["fpunits"] = v["units"]; d["fpprice"] = round(v["avgp"], 1); d["fpvel"] = round(rv)
         dec_pct = (1 - (d["dec"] - 1) / 9.0) if d.get("dec") else 0.4  # 1=best ->1.0; unknown ->0.4
-        # JB premium fit (price-led) — qualifies as a target only above a premium floor
-        if v["avgp"] >= 32 and v["vol"] >= 200000:
+        # JB premium fit (price-led) — qualifies as a target only above a premium floor.
+        # Floor widened 2026-07-21 (price $32->$28, vol $200k->$100k) to grow the T3 entry-tier
+        # prospect pool (smallest premium orders / top of the funnel).
+        if v["avgp"] >= 28 and v["vol"] >= 100000:
             d["jbfit"] = round(100 * (0.45 * pP(v["avgp"]) + 0.28 * pV(v["vol"]) + 0.15 * pVel(rv) + 0.12 * dec_pct))
         # Dragonfly value fit (units-led, value price)
         if v["units"] >= 5000:
