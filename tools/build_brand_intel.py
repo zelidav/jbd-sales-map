@@ -13,7 +13,7 @@ non-Ayrloom leader (a premium brand tops the F+PR list).
 
 Usage: python tools/build_brand_intel.py   # uses brand_rank_*.xlsx in ~/Downloads
 """
-import os, glob, json, openpyxl
+import os, sys, glob, json, openpyxl
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 OUT = os.path.join(ROOT, "server", "brand_intel.json")
@@ -38,7 +38,9 @@ def find(rows, name):
 
 
 def main():
-    files = glob.glob(os.path.join(os.path.expanduser("~"), "Downloads", "brand_rank_*.xlsx"))
+    # Explicit files win: globbing Downloads silently mixes stale exports with fresh ones.
+    pos = [a for a in sys.argv[1:] if not a.startswith("--")]
+    files = pos or glob.glob(os.path.join(os.path.expanduser("~"), "Downloads", "brand_rank_*.xlsx"))
     loaded = [(p, load(p)) for p in files]
     # dedupe by (total, leader); classify
     seen = {}
@@ -53,7 +55,13 @@ def main():
     allcat.sort()  # ascending total = 30/90/180
     fpr.sort(reverse=True)  # largest F+PR window first
 
-    labels = ["30d", "90d", "180d"]
+    # Window spans must be stated, not assumed. Pass --windows 31,61,91 to label them
+    # honestly; otherwise fall back to relative names rather than inventing day counts.
+    wf = next((a for a in sys.argv[1:] if a.startswith("--windows")), None)
+    if wf:
+        labels = [f"{d.strip()}d" for d in wf.split("=", 1)[-1].split(",")]
+    else:
+        labels = ["short", "mid", "long"]
     traj = []
     for lbl, (tot, rows) in zip(labels, allcat):
         d = find(rows, "Dragonfly")

@@ -158,7 +158,7 @@ def main():
     if os.path.exists(gpath):
         geocache = json.load(open(gpath))
 
-    offmap = [r for r in sorted(d90.values(), key=lambda x: x["rank"]) if not on_map(r["store"])]
+    offmap = [r for r in sorted(dM.values(), key=lambda x: x["rank"]) if not on_map(r["store"])]
     prospects = []
     seen_lic = set(map_lic)
     seen_addr = set()

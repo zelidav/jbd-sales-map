@@ -1,287 +1,287 @@
 {
  "dragonfly_trajectory": [
   {
-   "window": "30d",
-   "rank": 56,
-   "vol": 661783,
+   "window": "31d",
+   "rank": 50,
+   "vol": 795354,
    "dist_pct": 23
   },
   {
-   "window": "90d",
-   "rank": 53,
-   "vol": 1951016,
-   "dist_pct": 26
+   "window": "61d",
+   "rank": 52,
+   "vol": 1439870,
+   "dist_pct": 24
   },
   {
-   "window": "180d",
-   "rank": 52,
-   "vol": 2118410,
+   "window": "91d",
+   "rank": 51,
+   "vol": 2079382,
    "dist_pct": 26
   }
  ],
- "dragonfly_fpr_rank": 46,
+ "dragonfly_fpr_rank": 42,
  "top_brands_all": [
   {
    "rank": 1,
    "brand": "Ayrloom",
-   "vol": 19428797,
-   "dist_pct": 89
+   "vol": 18528617,
+   "dist_pct": 88
   },
   {
    "rank": 2,
    "brand": "Rythm",
-   "vol": 12879317,
-   "dist_pct": 52
+   "vol": 12479483,
+   "dist_pct": 53
   },
   {
    "rank": 3,
    "brand": "Jaunty",
-   "vol": 12064548,
+   "vol": 11292174,
    "dist_pct": 74
   },
   {
    "rank": 4,
    "brand": "Florist Farms",
-   "vol": 11060845,
+   "vol": 11038130,
    "dist_pct": 71
   },
   {
    "rank": 5,
    "brand": "Ruby Farms",
-   "vol": 10672585,
-   "dist_pct": 60
+   "vol": 10878925,
+   "dist_pct": 61
   },
   {
    "rank": 6,
-   "brand": "Mfny",
-   "vol": 10429737,
-   "dist_pct": 75
-  },
-  {
-   "rank": 7,
    "brand": "Off Hours",
-   "vol": 10328178,
+   "vol": 10004578,
    "dist_pct": 80
   },
   {
+   "rank": 7,
+   "brand": "Mfny",
+   "vol": 9762433,
+   "dist_pct": 75
+  },
+  {
    "rank": 8,
-   "brand": "Dank By Definition",
-   "vol": 10212066,
-   "dist_pct": 69
+   "brand": "Fernway",
+   "vol": 9413793,
+   "dist_pct": 57
   },
   {
    "rank": 9,
-   "brand": "Fernway",
-   "vol": 9685765,
-   "dist_pct": 57
+   "brand": "Dank By Definition",
+   "vol": 9003072,
+   "dist_pct": 69
   },
   {
    "rank": 10,
    "brand": "Find",
-   "vol": 9122281,
-   "dist_pct": 55
+   "vol": 8293276,
+   "dist_pct": 54
   },
   {
    "rank": 11,
    "brand": "Camino",
-   "vol": 7398339,
+   "vol": 6994468,
    "dist_pct": 63
   },
   {
    "rank": 12,
-   "brand": "Select",
-   "vol": 7296928,
-   "dist_pct": 50
+   "brand": "Leal",
+   "vol": 6745999,
+   "dist_pct": 38
   },
   {
    "rank": 13,
-   "brand": "Leal",
-   "vol": 7007722,
-   "dist_pct": 37
+   "brand": "Nanticoke",
+   "vol": 6146586,
+   "dist_pct": 64
   },
   {
    "rank": 14,
-   "brand": "Rolling Green Cannabis",
-   "vol": 6825958,
-   "dist_pct": 60
+   "brand": "Revert Cannabis",
+   "vol": 6063177,
+   "dist_pct": 57
   },
   {
    "rank": 15,
-   "brand": "Revert Cannabis",
-   "vol": 6758260,
-   "dist_pct": 56
+   "brand": "Rolling Green Cannabis",
+   "vol": 5929699,
+   "dist_pct": 61
   },
   {
    "rank": 16,
-   "brand": "Nanticoke",
-   "vol": 6455271,
-   "dist_pct": 67
+   "brand": "Select",
+   "vol": 5829729,
+   "dist_pct": 52
   },
   {
    "rank": 17,
    "brand": "Hashtag Honey",
-   "vol": 6018678,
+   "vol": 5748876,
    "dist_pct": 43
   },
   {
    "rank": 18,
-   "brand": "Grassroots Cannabis",
-   "vol": 5813020,
-   "dist_pct": 54
+   "brand": "Wyld",
+   "vol": 5358288,
+   "dist_pct": 69
   },
   {
    "rank": 19,
-   "brand": "Wyld",
-   "vol": 5712526,
-   "dist_pct": 70
+   "brand": "Stiiizy",
+   "vol": 5329423,
+   "dist_pct": 47
   },
   {
    "rank": 20,
    "brand": "Gron",
-   "vol": 5663777,
-   "dist_pct": 66
+   "vol": 5281937,
+   "dist_pct": 65
   }
  ],
  "top_brands_flower_preroll": [
   {
    "rank": 1,
-   "brand": "Dank By Definition",
-   "vol": 10209638,
-   "dist_pct": 69,
-   "price": 53
+   "brand": "Ruby Farms",
+   "vol": 10297730,
+   "dist_pct": 61,
+   "price": 42
   },
   {
    "rank": 2,
-   "brand": "Ruby Farms",
-   "vol": 10098928,
-   "dist_pct": 59,
-   "price": 42
+   "brand": "Dank By Definition",
+   "vol": 9001322,
+   "dist_pct": 69,
+   "price": 51
   },
   {
    "rank": 3,
    "brand": "Find",
-   "vol": 9121828,
-   "dist_pct": 55,
-   "price": 102
+   "vol": 8292859,
+   "dist_pct": 54,
+   "price": 100
   },
   {
    "rank": 4,
    "brand": "Rythm",
-   "vol": 8171318,
+   "vol": 7819420,
    "dist_pct": 49,
-   "price": 72
+   "price": 68
   },
   {
    "rank": 5,
    "brand": "Leal",
-   "vol": 7001805,
-   "dist_pct": 37,
-   "price": 50
+   "vol": 6737849,
+   "dist_pct": 38,
+   "price": 49
   },
   {
    "rank": 6,
    "brand": "Rolling Green Cannabis",
-   "vol": 6823989,
-   "dist_pct": 60,
+   "vol": 5928338,
+   "dist_pct": 61,
    "price": 56
   },
   {
    "rank": 7,
-   "brand": "Revert Cannabis",
-   "vol": 6274393,
-   "dist_pct": 55,
-   "price": 47
-  },
-  {
-   "rank": 8,
-   "brand": "Grassroots Cannabis",
-   "vol": 5742232,
-   "dist_pct": 54,
-   "price": 48
-  },
-  {
-   "rank": 9,
    "brand": "Florist Farms",
-   "vol": 5474614,
+   "vol": 5533963,
    "dist_pct": 68,
    "price": 37
   },
   {
+   "rank": 8,
+   "brand": "Revert Cannabis",
+   "vol": 5470912,
+   "dist_pct": 56,
+   "price": 48
+  },
+  {
+   "rank": 9,
+   "brand": "Grassroots Cannabis",
+   "vol": 4960534,
+   "dist_pct": 54,
+   "price": 51
+  },
+  {
    "rank": 10,
    "brand": "Nanticoke",
-   "vol": 4760292,
-   "dist_pct": 65,
+   "vol": 4547663,
+   "dist_pct": 62,
    "price": 35
   },
   {
    "rank": 11,
-   "brand": "Jetpacks",
-   "vol": 4314150,
-   "dist_pct": 43,
-   "price": 33
+   "brand": "Jeeter",
+   "vol": 4118182,
+   "dist_pct": 42,
+   "price": 36
   },
   {
    "rank": 12,
-   "brand": "Jeeter",
-   "vol": 4102544,
+   "brand": "Jetpacks",
+   "vol": 3981108,
    "dist_pct": 42,
-   "price": 37
+   "price": 33
   },
   {
    "rank": 13,
    "brand": "Anthem",
-   "vol": 3995686,
-   "dist_pct": 50,
+   "vol": 3938579,
+   "dist_pct": 52,
    "price": 30
   },
   {
    "rank": 14,
-   "brand": "Matter",
-   "vol": 3915501,
-   "dist_pct": 35,
-   "price": 80
-  },
-  {
-   "rank": 15,
    "brand": "Untitled",
-   "vol": 3736145,
+   "vol": 3804102,
    "dist_pct": 35,
    "price": 53
   },
   {
+   "rank": 15,
+   "brand": "Bouket",
+   "vol": 3739008,
+   "dist_pct": 66,
+   "price": 38
+  },
+  {
    "rank": 16,
    "brand": "Back Home Cannabis Co",
-   "vol": 3465426,
+   "vol": 3698632,
    "dist_pct": 27,
-   "price": 48
+   "price": 47
   },
   {
    "rank": 17,
-   "brand": "Heady Tree",
-   "vol": 3325490,
-   "dist_pct": 28,
-   "price": 27
+   "brand": "The Plug Pack",
+   "vol": 3273164,
+   "dist_pct": 22,
+   "price": 84
   },
   {
    "rank": 18,
-   "brand": "Bouket",
-   "vol": 3164974,
-   "dist_pct": 62,
-   "price": 39
+   "brand": "Heady Tree",
+   "vol": 3224508,
+   "dist_pct": 29,
+   "price": 26
   },
   {
    "rank": 19,
-   "brand": "1937",
-   "vol": 3160414,
-   "dist_pct": 51,
-   "price": 60
+   "brand": "Matter",
+   "vol": 2969014,
+   "dist_pct": 31,
+   "price": 77
   },
   {
    "rank": 20,
-   "brand": "Dogwalkers",
-   "vol": 2900975,
-   "dist_pct": 44,
-   "price": 30
+   "brand": "Smoakland",
+   "vol": 2928963,
+   "dist_pct": 16,
+   "price": 98
   }
  ]
 }
