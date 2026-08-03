@@ -37,10 +37,31 @@ def cbase(s):
     return cset(str(s or "").split(" - ")[0])
 
 
+def window_days(avgs):
+    """True window length in days: 'Avg # SKUs Stocked' is a per-day mean, so its
+    denominator is the day count. Exports carry no date metadata; never guess."""
+    frac = [v for v in avgs if isinstance(v, (int, float)) and v != int(v)]
+    if not frac:
+        return None
+    for d in range(1, 200):
+        if sum(1 for v in frac if abs(v * d - round(v * d)) < 1e-3) / len(frac) > 0.85:
+            return d
+    return None
+
+
 def loadstore(p):
     wb = openpyxl.load_workbook(p, data_only=True); ws = wb[wb.sheetnames[0]]
-    return {r[1]: {"rank": int(r[0]), "units": int(r[2] or 0), "avgp": float(r[3] or 0), "vol": int(r[4] or 0)}
-            for r in ws.iter_rows(min_row=2, values_only=True) if r[0] is not None}
+    out, avgs = {}, []
+    for r in ws.iter_rows(min_row=2, values_only=True):
+        if r[0] is None:
+            continue
+        out[r[1]] = {"rank": int(r[0]), "units": int(r[2] or 0), "avgp": float(r[3] or 0), "vol": int(r[4] or 0)}
+        if len(avgs) < 120 and len(r) > 5:
+            avgs.append(r[5])
+    days = window_days(avgs)
+    if not days:
+        raise SystemExit(f"Cannot determine window length for {os.path.basename(p)} — refusing to guess.")
+    return out, days
 
 
 def pctile_fn(vals):
@@ -68,12 +89,22 @@ def main():
         cand = sorted(glob.glob(os.path.join(os.path.expanduser("~"), "Downloads", "store_rank_*.xlsx")),
                       key=lambda p: sum(x["vol"] for x in loadstore(p).values()))
         files = cand[:2]
-    a, b = loadstore(files[0]), loadstore(files[1])
-    fp30, fp90 = (a, b) if sum(x["vol"] for x in a.values()) <= sum(x["vol"] for x in b.values()) else (b, a)
-    print(f"F+PR 30-day: {os.path.basename(files[0] if a is fp30 else files[1])}  ${sum(x['vol'] for x in fp30.values()):,}")
-    print(f"F+PR 90-day: {os.path.basename(files[1] if b is fp90 else files[0])}  ${sum(x['vol'] for x in fp90.values()):,}")
+    loaded = [(f,) + loadstore(f) for f in files[:2]]
+    loaded.sort(key=lambda t: t[2])            # ascending by MEASURED window length
+    (fS, fp30, nS), (fL, fp90, nL) = loaded
+    print(f"F+PR short {nS}d: {os.path.basename(fS)}  ${sum(x['vol'] for x in fp30.values()):,}")
+    print(f"F+PR long  {nL}d: {os.path.basename(fL)}  ${sum(x['vol'] for x in fp90.values()):,}")
+    if nL <= nS:
+        raise SystemExit("The two F+PR exports must cover different window lengths.")
 
-    vel = {s: round(100 * (fp30[s]["vol"] / (v["vol"] / 3.0) - 1)) for s, v in fp90.items() if v["vol"] > 0 and s in fp30}
+    # Nested windows: measure the recent period against the period BEFORE it, not
+    # against the longer window that contains it.
+    vel = {}
+    for s, v in fp90.items():
+        if s in fp30 and v["vol"] > fp30[s]["vol"]:
+            prior = (v["vol"] - fp30[s]["vol"]) / (nL - nS)
+            if prior > 0:
+                vel[s] = round(100 * ((fp30[s]["vol"] / nS) / prior - 1))
     medv = statistics.median(vel.values())
 
     html = open(HTML, encoding="utf-8").read()

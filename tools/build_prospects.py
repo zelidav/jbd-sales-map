@@ -37,15 +37,32 @@ def cbase(s):
     return cset(str(s or "").split(" - ")[0])
 
 
+def window_days(avgs):
+    """True window length in days — 'Avg # SKUs Stocked' is a per-day mean, so its
+    denominator is the day count. Exports carry no date metadata; never guess."""
+    frac = [v for v in avgs if isinstance(v, (int, float)) and v != int(v)]
+    if not frac:
+        return None
+    for d in range(1, 200):
+        if sum(1 for v in frac if abs(v * d - round(v * d)) < 1e-3) / len(frac) > 0.85:
+            return d
+    return None
+
+
 def load_rank(p):
     wb = openpyxl.load_workbook(p, data_only=True)
     ws = wb[wb.sheetnames[0]]
-    out = {}
+    out, avgs = {}, []
     for r in ws.iter_rows(min_row=2, values_only=True):
         if r[0] is None:
             continue
         out[r[1]] = {"rank": int(r[0]), "store": r[1], "units": int(r[2] or 0), "vol": int(r[4] or 0)}
-    return out
+        if len(avgs) < 120 and len(r) > 5:
+            avgs.append(r[5])
+    days = window_days(avgs)
+    if not days:
+        raise SystemExit(f"Cannot determine window length for {os.path.basename(p)} — refusing to guess.")
+    return out, days
 
 
 def geocode(query, cache):
@@ -70,25 +87,33 @@ def main():
     files = pos[:3] if len(pos) >= 3 else sorted(
         glob.glob(os.path.join(os.path.expanduser("~"), "Downloads", "store_rank_*.xlsx")),
         key=os.path.getmtime)[-3:]
-    wins = sorted(((f, load_rank(f)) for f in files), key=lambda fr: sum(x["vol"] for x in fr[1].values()))
-    (_, d30), (_, d90), (_, d180) = wins
-    med = json.load(open(os.path.join(CACHE, "market_baseline.json"))).get("mom_median", 34)
+    # Sort by MEASURED window length, never by total volume (volume-guessing silently
+    # mislabelled a 69-day export as "90-day" and a 93-day one as "180-day").
+    wins = []
+    for f in files:
+        rows, days = load_rank(f)
+        wins.append((f, rows, days))
+    wins.sort(key=lambda fr: fr[2])
+    (_, dS, nS), (_, dM, nM), (_, dL, nL) = wins
+    base = json.load(open(os.path.join(CACHE, "market_baseline.json")))
+    med = base.get("mom_median", 0)
 
     def metrics(store):
-        r90 = d90.get(store)
-        if not r90:
+        rM = dM.get(store)
+        if not rM:
             return None
-        m = {"psr": r90["rank"], "svol": r90["vol"], "sunits": r90["units"]}
-        r30 = d30.get(store); r180 = d180.get(store)
-        if r30:
-            m["svol30"] = r30["vol"]
-        if r180:
-            m["svol180"] = r180["vol"]
-        if r30 and r90["vol"]:
-            m["mom"] = round(100 * (r30["vol"] / (r90["vol"] / 3.0) - 1))
+        m = {"psr": rM["rank"], "svol": rM["vol"], "sunits": rM["units"]}
+        rS = dS.get(store); rL = dL.get(store)
+        if rS:
+            m["svol30"] = rS["vol"]
+        if rL:
+            m["svol180"] = rL["vol"]
+        # Windows are nested, so compare against the non-overlapping PRECEDING period.
+        if rS and rM["vol"] > rS["vol"]:
+            m["mom"] = round(100 * ((rS["vol"] / nS) / ((rM["vol"] - rS["vol"]) / (nM - nS)) - 1))
             m["momr"] = m["mom"] - med
-        if r90["vol"] and r180:
-            m["trend"] = round(100 * ((r90["vol"] / 3.0) / (r180["vol"] / 6.0) - 1))
+        if rL and rL["vol"] > rM["vol"]:
+            m["trend"] = round(100 * ((rM["vol"] / nM) / ((rL["vol"] - rM["vol"]) / (nL - nM)) - 1))
         return m
 
     ocm = json.load(open(os.path.join(CACHE, "ocm_full.json")))

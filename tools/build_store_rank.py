@@ -40,15 +40,42 @@ def cbase(s):
     return cset(str(s or "").split(" - ")[0])
 
 
+def window_days(avgs):
+    """Recover a Pistil export's true window length in days.
+
+    Pistil exports carry NO date metadata, so the window was previously *guessed*
+    from total volume — which silently mislabelled a 69-day file as "90-day" and a
+    93-day file as "180-day", corrupting every momentum figure on the map.
+    'Avg # SKUs Stocked' is a per-day mean, so its denominator IS the day count:
+    find the smallest d that makes avg*d an integer for the overwhelming majority
+    of rows. Verified exact against every historical export.
+    """
+    frac = [v for v in avgs if isinstance(v, (int, float)) and v != int(v)]
+    if not frac:
+        return None
+    for d in range(1, 200):
+        ok = sum(1 for v in frac if abs(v * d - round(v * d)) < 1e-3)
+        if ok / len(frac) > 0.85:
+            return d
+    return None
+
+
 def load_rank(path):
     wb = openpyxl.load_workbook(path, data_only=True)
     ws = wb[wb.sheetnames[0]]
-    out = {}
+    out, avgs = {}, []
     for r in ws.iter_rows(min_row=2, values_only=True):
         if r[0] is None:
             continue
         out[r[1]] = {"rank": int(r[0]), "store": r[1], "units": int(r[2] or 0), "vol": int(r[4] or 0)}
-    return out
+        if len(avgs) < 120 and len(r) > 5:
+            avgs.append(r[5])
+    days = window_days(avgs)
+    if not days:
+        raise SystemExit(f"Cannot determine window length for {os.path.basename(path)} — refusing to guess.")
+    for v in out.values():
+        v["days"] = days
+    return out, days
 
 
 def main():
@@ -58,12 +85,19 @@ def main():
         key=os.path.getmtime)[-3:]
     if len(files) < 3:
         raise SystemExit("Need three store_rank_*.xlsx files (30/90/180-day).")
-    loaded = [(f, load_rank(f)) for f in files]
-    loaded.sort(key=lambda fr: sum(x["vol"] for x in fr[1].values()))  # ascending total
-    (f30, d30), (f90, d90), (f180, d180) = loaded
-    print("windows by total volume (ascending = 30/90/180):")
-    for lbl, (f, d) in zip(("30-day", "90-day", "180-day"), loaded):
-        print(f"  {lbl:8} {os.path.basename(f):42} rows={len(d):4} total=${sum(x['vol'] for x in d.values()):,}")
+    loaded = []
+    for f in files:
+        rows, days = load_rank(f)
+        loaded.append((f, rows, days))
+    loaded.sort(key=lambda fr: fr[2])  # ascending by MEASURED window length
+    (fS, dS, nS), (fM, dM, nM), (fL, dL, nL) = loaded
+    if len({nS, nM, nL}) < 3:
+        raise SystemExit(f"Windows are not distinct ({nS}/{nM}/{nL} days) — pull three different ranges.")
+    print("windows (measured from the files, not guessed):")
+    for f, rows, days in loaded:
+        tot = sum(x["vol"] for x in rows.values())
+        print(f"  {days:>4}d  {os.path.basename(f):42} rows={len(rows):4} "
+              f"total=${tot:,} (${tot/days:,.0f}/day)")
 
     html = open(HTML, encoding="utf-8").read()
     m = re.search(r"var DATA=(\[.*?\]);", html, re.S)
@@ -110,17 +144,27 @@ def main():
                 d[units_key] = r["units"]
         return len(seen)
 
-    matched = attach(d90, "svol", "psr", "sunits")  # headline = 90-day (stable + current)
-    attach(d30, "svol30")
-    attach(d180, "svol180")
+    matched = attach(dM, "svol", "psr", "sunits")  # headline = mid window
+    attach(dS, "svol30")    # legacy key = SHORT window volume
+    attach(dL, "svol180")   # legacy key = LONG window volume
+
+    def pct(recent_rate, prior_rate):
+        """Percent change of a daily run-rate vs the daily run-rate that preceded it."""
+        if not prior_rate or prior_rate <= 0 or recent_rate is None:
+            return None
+        return round(100 * (recent_rate / prior_rate - 1))
 
     momn = 0
     for d in data:
-        # svol = 90-day. monthly run-rates: 30d=svol30, 90d=svol/3, 180d=svol180/6
-        if d.get("svol30") and d.get("svol"):
-            d["mom"] = round(100 * (d["svol30"] / (d["svol"] / 3.0) - 1))      # 30d vs 90d
-        if d.get("svol") and d.get("svol180"):
-            d["trend"] = round(100 * ((d["svol"] / 3.0) / (d["svol180"] / 6.0) - 1))  # 90d vs 180d
+        vS, vM, vL = d.get("svol30"), d.get("svol"), d.get("svol180")
+        # Compare the recent window against the period IMMEDIATELY BEFORE it, not
+        # against a longer window that CONTAINS it. Windows are nested (the short
+        # window's sales are also inside the mid window), so the prior period is the
+        # non-overlapping remainder: (vol_mid - vol_short) over (days_mid - days_short).
+        if vS and vM and vM > vS:
+            d["mom"] = pct(vS / nS, (vM - vS) / (nM - nS))
+        if vM and vL and vL > vM:
+            d["trend"] = pct(vM / nM, (vL - vM) / (nL - nM))
         if d.get("mom") is not None:
             momn += 1
     # The whole NY market is growing, so raw momentum is positive almost everywhere.
@@ -129,21 +173,26 @@ def main():
     # accelerating FASTER (or slower) than the typical NY store. Persisted to _cache so
     # build_prospects.py uses the identical baseline.
     mkt = []
-    for st, r90 in d90.items():
-        r30 = d30.get(st)
-        if r30 and r90["vol"]:
-            mkt.append(round(100 * (r30["vol"] / (r90["vol"] / 3.0) - 1)))
+    for st, rM in dM.items():
+        rS = dS.get(st)
+        if rS and rM["vol"] > rS["vol"]:
+            v = pct(rS["vol"] / nS, (rM["vol"] - rS["vol"]) / (nM - nS))
+            if v is not None:
+                mkt.append(v)
     mkt.sort()
     med = mkt[len(mkt) // 2] if mkt else 0
-    json.dump({"mom_median": med}, open(os.path.join(ROOT, "tools", "_cache", "market_baseline.json"), "w"))
+    json.dump({"mom_median": med, "win_short": nS, "win_mid": nM, "win_long": nL},
+              open(os.path.join(ROOT, "tools", "_cache", "market_baseline.json"), "w"))
     for d in data:
         if d.get("mom") is not None:
             d["momr"] = d["mom"] - med
-    print(f"statewide median 30d-vs-90d momentum: {med}% (momr is relative to this)")
+    print(f"statewide median momentum (last {nS}d vs prior {nM-nS}d): {med}%  — momr is relative to this")
+    if abs(med) > 25:
+        print(f"  ! median momentum of {med}% is large; check the windows are what you expect.")
 
     ranked = sorted([d for d in data if d.get("psr")], key=lambda d: d["psr"])
-    print(f"\nmatched {matched}/{len(data)} doors to a 90-day rank; momentum on {momn}.")
-    print("Top 12 (90-day rank · 30d-vs-90d momentum · 90d-vs-180d trend):")
+    print(f"\nmatched {matched}/{len(data)} doors to a {nM}-day rank; momentum on {momn}.")
+    print(f"Top 12 ({nM}d rank · last {nS}d vs prior {nM-nS}d · last {nM}d vs prior {nL-nM}d):")
     for d in ranked[:12]:
         mm = d.get("mom"); tr = d.get("trend")
         f = lambda v: "  n/a" if v is None else f"{'+' if v >= 0 else ''}{v}%"
@@ -153,6 +202,13 @@ def main():
         print("\n--dry: no write.")
         return
     new = html[:m.start(1)] + json.dumps(data, ensure_ascii=False) + html[m.end(1):]
+    # Publish the measured window lengths so the UI labels periods honestly instead of
+    # hard-coding "30/90/180d" (svol30/svol/svol180 are short/mid/long, not fixed spans).
+    wj = json.dumps({"s": nS, "m": nM, "l": nL})
+    if re.search(r"var WINDOWS=\{.*?\};", new):
+        new = re.sub(r"var WINDOWS=\{.*?\};", f"var WINDOWS={wj};", new, count=1)
+    else:
+        new = new.replace("var DATA=", f"var WINDOWS={wj};\nvar DATA=", 1)
     open(HTML, "w", encoding="utf-8").write(new)
     print(f"\nWrote ranks+momentum into index.html. Next: python tools/sync_accounts.py")
 
