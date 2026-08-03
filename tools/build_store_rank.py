@@ -94,10 +94,19 @@ def main():
     if len({nS, nM, nL}) < 3:
         raise SystemExit(f"Windows are not distinct ({nS}/{nM}/{nL} days) — pull three different ranges.")
     print("windows (measured from the files, not guessed):")
+    rates = []
     for f, rows, days in loaded:
         tot = sum(x["vol"] for x in rows.values())
+        rates.append(tot / days)
         print(f"  {days:>4}d  {os.path.basename(f):42} rows={len(rows):4} "
               f"total=${tot:,} (${tot/days:,.0f}/day)")
+    # Nested windows overlap heavily, so their $/day cannot diverge much. A big spread
+    # means the files are different CUTS (e.g. a Flower+Preroll export mixed in with
+    # all-category ones), which would silently produce nonsense.
+    if max(rates) / min(rates) > 1.35:
+        raise SystemExit(
+            f"Windows disagree on $/day by {max(rates)/min(rates):.2f}x — these look like "
+            "different cuts (category filter), not three windows of the same report.")
 
     html = open(HTML, encoding="utf-8").read()
     m = re.search(r"var DATA=(\[.*?\]);", html, re.S)

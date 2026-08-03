@@ -83,3 +83,17 @@ with its neighbouring windows to a few percent.
 ~90 days. There is no 180-day data and never was; the longest window ever obtained is 93
 days. To see further back, stitch older snapshots: a 91-day window pulled today plus a
 93-day window pulled in June reaches to late March.
+
+## Never mix cuts
+
+`build_store_rank.py` / `build_prospects.py` default to the newest three
+`~/Downloads/store_rank_*.xlsx`. A Flower+Preroll export sitting in that folder gets
+picked up alongside all-category ones and silently produces nonsense — F+PR is ~55% of
+the market, so momentum comes out wildly wrong with no error.
+
+Two defences:
+- Name category-filtered exports so the glob cannot see them, e.g.
+  `FPR_ONLY_store_rank_<date>.xlsx`, or pass files explicitly.
+- `build_store_rank.py` now refuses to run when the windows' `$/day` differ by more than
+  1.35x. Nested windows overlap heavily, so a large spread means different cuts, not
+  different periods.
