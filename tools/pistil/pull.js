@@ -62,14 +62,27 @@ const snapshot = () => new Set(fs.readdirSync(DL));
     const hit = ctrls.find(c => c.sigmaControlId === k);
     if (hit) hit.values = v; else ctrls.push({ sigmaControlId: k, values: v });
   }
-  const put = await fetch(ctrlUrl, {
-    method: 'PUT', headers: { ...headers, 'Content-Type': 'application/json' },
-    body: JSON.stringify({ isDefault: false, isAutoSaving: true, savedFilterName: '', sigmaControls: ctrls }),
-  });
-  console.log('PUT controls ->', put.status);
+  const writeControls = async () => {
+    const r = await fetch(ctrlUrl, {
+      method: 'PUT', headers: { ...headers, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ isDefault: false, isAutoSaving: true, savedFilterName: '', sigmaControls: ctrls }),
+    });
+    return r.status;
+  };
+  const readControl = async (id) => {
+    const j = await (await fetch(ctrlUrl, { headers })).json();
+    return (j.sigmaControls.find(c => c.sigmaControlId === id) || {}).values;
+  };
+  console.log('PUT controls ->', await writeControls());
 
+  // Chrome cancels repeated automatic downloads, and the export is a blob: URL built
+  // in page memory (not fetchable from Node). So capture the blob URL from the CDP
+  // event and read the bytes out of the page itself.
   const client = await page.createCDPSession();
-  await client.send('Page.setDownloadBehavior', { behavior: 'allow', downloadPath: DL });
+  await client.send('Browser.setDownloadBehavior',
+    { behavior: 'allow', downloadPath: DL, eventsEnabled: true });
+  let blobUrl = null;
+  client.on('Browser.downloadWillBegin', e => { blobUrl = e.url; });
 
   await page.goto(`https://insights.pistildata.com/${report}/${wbGuid}`, { waitUntil: 'domcontentloaded' }).catch(() => {});
   await sleep(6000);
@@ -77,30 +90,51 @@ const snapshot = () => new Set(fs.readdirSync(DL));
   if (!page.url().includes(wbGuid)) {
     await page.goto(`https://insights.pistildata.com/${report}/${wbGuid}`, { waitUntil: 'domcontentloaded' }).catch(() => {});
   }
-  await sleep(75000); // Sigma render (longer: partial renders produced short exports)
+  await sleep(+(process.env.RENDER_MS || 75000)); // Sigma render (RENDER_MS to tune)
 
   await page.screenshot({ path: `pull_${slug}_page.png` });
 
-  const before = snapshot();
+  // Keep a reference to the Blob itself: Chrome cancels the download and revokes the
+  // blob: URL before we can fetch it, but the Blob object stays alive if we hold it.
+  await page.evaluate(() => {
+    if (window.__origCOU) return;
+    window.__origCOU = URL.createObjectURL.bind(URL);
+    window.__lastBlob = null;
+    URL.createObjectURL = function (b) { window.__lastBlob = b; return window.__origCOU(b); };
+  });
+
+  await page.keyboard.press('Escape');   // ensure no modal is already open
+  await sleep(1500);
   if (!(await clickText(page, 'Download'))) { console.log('no Download button'); browser.disconnect(); process.exit(4); }
-  await sleep(5000);
-  await page.screenshot({ path: `pull_${slug}_modal.png` });
+  await sleep(6000);
   if (!(await clickText(page, 'XLSX'))) {
-    await page.mouse.click(1148, 635); // fallback to known coords
+    await page.mouse.click(1148, 635);
     console.log('  (XLSX text not found, used coords)');
   }
-  console.log('clicked XLSX');
 
-  let added = null;
-  for (let i = 0; i < 45; i++) {
-    await sleep(2000);
-    const now = [...snapshot()].filter(f => !before.has(f) && /\.xlsx$/i.test(f));
-    if (now.length) { added = now[0]; break; }
+  for (let i = 0; i < 60 && !blobUrl; i++) await sleep(1000);
+  if (!blobUrl) { console.log('NO DOWNLOAD STARTED'); browser.disconnect(); process.exit(2); }
+
+  const b64 = await page.evaluate(async () => {
+    const b = window.__lastBlob;
+    if (!b) return null;
+    const buf = new Uint8Array(await b.arrayBuffer());
+    let s = '';
+    for (let i = 0; i < buf.length; i += 8192)
+      s += String.fromCharCode.apply(null, buf.subarray(i, i + 8192));
+    return btoa(s);
+  }).catch(e => { console.log('blob read failed:', e.message); return null; });
+
+  if (!b64) { console.log('BLOB UNREADABLE'); browser.disconnect(); process.exit(5); }
+  const buf = Buffer.from(b64, 'base64');
+  // A too-small file means an empty render; a too-large one means the state filter did
+  // not apply (Michigan rows leaked in at 729 stores vs New York's ~640).
+  if (buf.length < 8000) {
+    console.log(`REJECTED: ${buf.length} bytes - empty/partial render, not saved`);
+    browser.disconnect(); process.exit(7);
   }
-  if (!added) { console.log('NO FILE DOWNLOADED'); browser.disconnect(); process.exit(2); }
   const dest = path.join(DL, `PULL_${slug}.xlsx`);
-  if (fs.existsSync(dest)) fs.unlinkSync(dest);
-  fs.renameSync(path.join(DL, added), dest);
-  console.log('saved ->', dest);
+  fs.writeFileSync(dest, buf);
+  console.log('saved ->', dest, `(${buf.length} bytes)`);
   browser.disconnect();
 })().catch(e => { console.error('ERR', e.message); process.exit(1); });
