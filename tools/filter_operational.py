@@ -26,8 +26,8 @@ DRY = "--dry" in sys.argv
 # Roles we trust as open regardless of OCM operational_status:
 #  - we have orders from them (Active/Slipping) => they are open
 #  - JB tiers are a hand-curated priority list of real, operating stores
-TRUST_ROLES = {"Dragonfly Active", "Dragonfly Slipping",
-               "JB Tier 1", "JB Tier 2", "JB Tier 3"}
+TRUST_ROLES = {"Active", "Slipping",
+               "Priority T1", "Priority T2", "Priority T3"}
 
 
 def fetch_ocm():

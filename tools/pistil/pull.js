@@ -127,10 +127,15 @@ const snapshot = () => new Set(fs.readdirSync(DL));
 
   if (!b64) { console.log('BLOB UNREADABLE'); browser.disconnect(); process.exit(5); }
   const buf = Buffer.from(b64, 'base64');
-  // A too-small file means an empty render; a too-large one means the state filter did
-  // not apply (Michigan rows leaked in at 729 stores vs New York's ~640).
-  if (buf.length < 8000) {
-    console.log(`REJECTED: ${buf.length} bytes - empty/partial render, not saved`);
+  // Reject only an obviously EMPTY render. A header-only export is ~5.35KB, so the
+  // floor sits just above that. The old 8KB floor silently discarded any brand in
+  // fewer than ~41 doors — Jerome Baker ($56k statewide) failed repeatedly as an
+  // "empty/partial render" when its file was perfectly valid, just small.
+  // Semantic checks (row count, Michigan contamination, volume vs brand rank) belong
+  // downstream in validate_brands.py, which can actually parse the workbook.
+  const MIN_BYTES = Number(process.env.MIN_BYTES || 5450);
+  if (buf.length < MIN_BYTES) {
+    console.log(`REJECTED: ${buf.length} bytes - empty render (< ${MIN_BYTES}), not saved`);
     browser.disconnect(); process.exit(7);
   }
   const dest = path.join(DL, `PULL_${slug}.xlsx`);

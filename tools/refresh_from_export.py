@@ -12,7 +12,7 @@ Defaults to ~/Downloads/Finance Docs/Dragonfly_JB_Field_Map.html
 
 After running: review the diff, then commit + push as usual.
 """
-import os, re, sys, subprocess
+import os, re, sys, json, subprocess
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 DEFAULT = os.path.expanduser("~/Downloads/Finance Docs/Dragonfly_JB_Field_Map.html")
@@ -26,6 +26,28 @@ m = re.search(r"var DATA=(\[.*?\]);", src, re.S)
 if not m:
     raise SystemExit("Could not find `var DATA=[...]` in the export.")
 new_data = m.group(1)
+
+# The upstream export still labels accounts with the old two-brand vocabulary. The
+# map is brand-agnostic now, so normalize on the way in — otherwise every refresh
+# silently reintroduces "Dragonfly Active" / "JB Tier 1" into the UI and the bot.
+ROLE_MAP = {
+    "Dragonfly Active": "Active",
+    "Dragonfly Slipping": "Slipping",
+    "Dragonfly Fallow": "Lapsed",
+    "JB Tier 1": "Priority T1",
+    "JB Tier 2": "Priority T2",
+    "JB Tier 3": "Priority T3",
+    "New Prospect": "Prospect",
+}
+_rows = json.loads(new_data)
+_renamed = 0
+for _d in _rows:
+    _r = _d.get("role")
+    if _r in ROLE_MAP:
+        _d["role"] = ROLE_MAP[_r]
+        _renamed += 1
+new_data = json.dumps(_rows, ensure_ascii=False)
+print(f"normalized {_renamed} legacy role labels")
 
 idx = os.path.join(ROOT, "index.html")
 html = open(idx, encoding="utf-8").read()

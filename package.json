@@ -1,0 +1,8 @@
+{
+  "name": "jbd-sales-map",
+  "private": true,
+  "description": "Field map tooling. puppeteer-core drives the Pistil export puller in tools/pistil.",
+  "dependencies": {
+    "puppeteer-core": "^24.0.0"
+  }
+}

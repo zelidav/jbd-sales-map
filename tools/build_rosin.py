@@ -24,8 +24,8 @@ NB = {'SoHo':1.5,'Tribeca':1.5,'Chelsea':1.2,'West Village':1.4,'Greenwich Villa
       'Southampton':1.6,'Flatiron':1.0,'NoHo':1.2,'Nolita':1.2,'Williamsburg':1.0}
 # New brand (not Dragonfly/JB): relationship is only a slight "do we have a way in"
 # nudge, not a Dragonfly-loyalty bias. Prospects must compete on merit.
-REL = {'Dragonfly Active':2,'Dragonfly Slipping':1.8,'Dragonfly Fallow':1.5,
-       'JB Tier 1':1.6,'JB Tier 2':1.5,'JB Tier 3':1.4,'New Prospect':1.2}
+REL = {'Active':2,'Slipping':1.8,'Lapsed':1.5,
+       'Priority T1':1.6,'Priority T2':1.5,'Priority T3':1.4,'Prospect':1.2}
 
 rows = []
 for a in acc:

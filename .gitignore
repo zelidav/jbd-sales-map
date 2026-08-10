@@ -1,0 +1,11 @@
+node_modules/
+package-lock.json
+__pycache__/
+
+# Pistil puller artifacts: per-pull debug screenshots and the run log
+tools/pistil/pull_*_page.png
+tools/pistil/*.log
+
+# Raw exports and order data live outside the repo
+data/dragonfly_orders.csv
+*.xlsx

@@ -194,7 +194,7 @@ def main():
             skipped.append(r); continue
         rec = {"n": store.replace(" (Rec)", "").strip(), "lat": ll[0], "lng": ll[1],
                "a": addr["a"], "c": addr["c"], "co": addr["co"], "rg": addr["rg"],
-               "nb": "", "role": "New Prospect", "ds": "", "days": None, "rev": None,
+               "nb": "", "role": "Prospect", "ds": "", "days": None, "rev": None,
                "dec": None, "tier": "", "rep": "", "poc": "", "ph": "", "lic": lic,
                "op": op, "opened": "", "prospect": True, "src": "rank"}
         rec.update(metrics(store) or {})

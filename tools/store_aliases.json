@@ -1,0 +1,7 @@
+{
+  "_comment": "Pistil store name -> map door name, for doors the token matcher cannot bridge. Seeded from a known-customer list that revealed real carriage being dropped. Key is the exact Pistil name; value is the exact `n` in index.html's DATA.",
+  "NYC Bud | Queens": "NYCBUD LIC",
+  "NYC Bud | Manhattan": "NYC Bud Midtown",
+  "Qube - Manhattan": "QUBE",
+  "Dankley - Queens Village": "Dankley Canna"
+}

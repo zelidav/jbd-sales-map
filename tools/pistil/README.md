@@ -45,6 +45,42 @@ Workbooks (the saved-filter GUID is shared): store_rank
 · product_rank `0360a1ba-ee41-4da7-80ec-3cab0777db8e` · territory_rank
 `a045b250-2b12-46f2-a311-187e1b0dd4a1` (exports headers only — dashboard element).
 
+## Brand carriage (`ctrl_BRAND`)
+
+Store Rank accepts a **brand** filter, which turns it into a per-door carriage report:
+who stocks brand X, and how much of it they sell. This is the layer behind the map's
+"what you're selling" selector.
+
+```sh
+bash pull_brands.sh brands.txt          # one store_rank export per brand, ~2 min each
+python validate_brands.py --fix         # reject bad pulls, then re-run the line above
+python ../build_brand_carriage.py       # stamp carriage into index.html
+```
+
+`pull_brands.sh` is resumable — a brand whose file already validates is skipped, so a
+killed or partial run just needs re-running. It resets the shared saved filter when it
+finishes.
+
+Values are **exact brand-name strings** as they appear in the brand-rank export
+(`Dragonfly`, `Jerome Baker`, `Green Revolution`). Brands outside the top-100 brand rank
+work fine; to confirm a name exists, parse the product-rank export, whose `Product Name`
+column is `Brand - Strain - Size - Form`.
+
+### Validating a brand pull
+
+A correct brand cut totals **92–93% of that brand's brand-rank volume** — the remainder
+is at doors below the store-rank cutoff. That ratio is the only test that catches every
+failure mode; `validate_brands.py` enforces it, plus:
+
+- **>680 rows** — NY has ~645 doors, so this is Michigan leaking in (Trap 7)
+- **two brands with an identical total** — one is a stale render of the other
+
+Row counts and volume ceilings alone are not enough: a stale render once came back at
+729 rows / $12.7M and passed a `< $20M` check while being **319%** of the true total.
+
+The whole top-5-brands-per-category list needs **no extra pulls** — aggregate the
+product-rank export by `Pistil Category` × brand locally instead.
+
 Date ranges — always **nested**, so momentum can difference them into the preceding
 period, and always excluding the partial current month:
 

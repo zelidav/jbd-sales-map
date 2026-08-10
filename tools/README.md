@@ -33,8 +33,50 @@ bash server/deploy.sh          # Cloud Run: jbd-sales-bot (printful-manager / us
 The bot reuses the shared `MM_ANTHROPIC_API_KEY` secret. Its dataset is refreshed from
 index.html automatically on deploy.
 
+## Refresh the Pistil intelligence layer (monthly)
+
+Pistil retention is ~90 days, so this needs re-running to stay current. Order matters —
+each step writes into `index.html`.
+
+```sh
+cd tools/pistil
+bash pull.js ...                     # all-category windows (see tools/pistil/README.md)
+bash pull_brands.sh brands.txt       # one export per brand — carriage. ~2 min each
+python validate_brands.py --fix      # reject bad pulls; re-run pull_brands.sh to fill gaps
+cd ../..
+python tools/build_store_rank.py     # psr / svol / mom / momr + var WINDOWS
+python tools/build_prospects.py      # off-map top performers
+python tools/build_category_fit.py   # per-category $/units/price/tier + quality tier + var CATS
+python tools/build_brand_carriage.py # per-door brand carriage + var BRANDS
+python tools/build_brand_profiles.py # what each brand sells -> server/brand_profiles.json
+python tools/sync_accounts.py        # refresh the bot dataset (carries cat/qt/br through)
+bash server/deploy.sh                # the bot reads brand_profiles.json + the carriage columns
+```
+
+**The bot is brand-aware.** The map's "What you're selling" selector posts `brand` with each
+chat request; the server appends that brand's product profile and carriage summary to the
+system prompt *after* the cached account block, so switching brands never invalidates the
+cache. `brand_profiles.json` gives it each brand's real category mix and price points from
+the product-rank export, so it never has to guess what a brand sells; `web_search` is there
+only to enrich an unknown brand's positioning, and it asks the rep when that is inconclusive.
+
+**Never trust a Pistil export without validating it** — exports carry no date metadata,
+an ignored filter silently returns the full dataset, and a short render returns the
+*previous* query. See `tools/pistil/README.md` for the traps and the 92–93% brand-ratio
+check that catches them.
+
 ## Scripts
 - `refresh_from_export.py` — swap DATA from an export without clobbering the app
 - `sync_accounts.py` — DATA → server/accounts.json (bot dataset)
 - `build_orders.py` — order CSV → server/orders_summary.json + `var MIX`
 - `build_rosin.py` — score + inject `var ROSIN50` (top-50 live-rosin targets)
+- `build_store_rank.py` — Pistil rank + momentum from three measured windows
+- `build_category_fit.py` — per-category price tier + customer-quality tier (`cat`, `qt`, `qs`)
+- `build_brand_carriage.py` — per-door brand carriage from brand-filtered pulls (`br`, `var BRANDS`)
+- `pistil/pull_brands.sh` · `pistil/validate_brands.py` — pull + verify the brand cuts
+
+### Superseded
+`build_fp_fit.py` wrote the two-brand `jbt`/`dft` premium-vs-value target tiers. The map
+no longer reads them: per-category price tiers plus **measured** brand carriage replaced
+inferred brand fit. The fields remain in DATA and the script still runs, but nothing
+consumes its output.

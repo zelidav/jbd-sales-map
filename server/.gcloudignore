@@ -1,0 +1,6 @@
+# The image runs `npm install` itself — never upload local (Windows-built) modules.
+node_modules/
+npm-debug.log
+deploy.log
+test_prompt.mjs
+.gcloudignore
