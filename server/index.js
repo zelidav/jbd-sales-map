@@ -50,12 +50,12 @@ function brandsStr(d) {
 }
 
 function accountTable() {
-  const head = 'name | role | off_map_prospect | customer_quality | quality_score | top_categories (cat:$/tier/avg_price) | brands_stocked | pistil_decile | store_rank | sales_window_usd | sales_30d_usd | momentum_30v90_pct | momentum_vs_market_pct | days_since_order | hist_rev_usd | city | neighborhood | county | region | rep | poc | phone | license | lat | lng';
+  const head = 'name | role | off_map_prospect | customer_quality | quality_score | top_categories (cat:$/tier/avg_price) | brands_stocked | pistil_decile | store_rank | sales_window_usd | sales_30d_usd | momentum_30v90_pct | momentum_vs_market_pct | cod_only_list | days_since_order | hist_rev_usd | city | neighborhood | county | region | rep | poc | phone | license | lat | lng';
   const lines = ACCOUNTS.map((d) => [
     d.n, d.role, d.prospect ? 'yes' : '',
     num(d.qt), num(d.qs), catStr(d), brandsStr(d),
     num(d.dec), num(d.psr), num(d.svol), num(d.svol30),
-    num(d.mom), num(d.momr), num(d.days),
+    num(d.mom), num(d.momr), d.cod ? `${d.cod}x` : '', num(d.days),
     num(d.rev), d.c, d.nb, d.co, d.rg, num(d.rep), num(d.poc), num(d.ph),
     num(d.lic), (d.lat != null ? d.lat.toFixed(4) : ''), (d.lng != null ? d.lng.toFixed(4) : ''),
   ].join(' | '));
@@ -184,6 +184,7 @@ FIELD MEANINGS
 - pistil_decile: market-quality decile, 1 = best, 10 = weakest. Lower is better.
 - store_rank: statewide Pistil performance rank (1 = best-performing store in NY). sales_window_usd / sales_30d_usd are estimated sell-through.
 - momentum_vs_market_pct (MOST ACTIONABLE): the store's momentum minus the market median. The whole NY market grows, so judge relative: positive = accelerating faster than the typical store (push, secure shelf space); negative = cooling relative to the market (defend, investigate).
+- cod_only_list ("2x", "3x"): NY OCM publishes a list of retail licensees that other licensees may sell to on a CASH-ON-DELIVERY basis only — no credit terms. The number is how many of the last 3 published editions the door appeared on. This is a terms-and-collections fact, NOT a reason to skip the door: plenty of high-volume stores are on it. Say it plainly whenever you recommend a COD door ("sell it COD, no terms"), and treat 3x — on every edition — as a real AR risk worth raising with the rep before they extend anything. A door with no value here simply was not on the published list.
 - days_since_order / hist_rev_usd: recency and historical revenue with the rep's own company.
 - region/county/city/neighborhood: geography for routing.
 
