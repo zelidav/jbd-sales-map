@@ -99,6 +99,16 @@ label.tog{display:inline-flex;align-items:center;gap:5px;font-size:12px;cursor:p
 #rmin{display:none;background:rgba(255,255,255,.18);border:none;color:#fff;width:28px;height:28px;border-radius:7px;font-size:20px;line-height:1;cursor:pointer;flex:0 0 auto;align-items:center;justify-content:center;touch-action:manipulation}
 #route .act2{padding-top:0}
 #route .act2 button{font-size:11px}
+#rmode{display:flex;gap:4px;padding:7px 12px 3px}
+#rmode button{flex:1;padding:5px 2px;font-size:10px;font-weight:700;border:1px solid #ccc;background:#fff;color:#666;border-radius:6px;cursor:pointer;line-height:1.3;touch-action:manipulation}
+#rmode button b{display:block;font-size:14px;font-weight:400}
+#rmode button.on{background:var(--ink);color:#fff;border-color:var(--ink)}
+.rnote{padding:2px 12px 5px;font-size:10.5px;color:#8a6d1f;line-height:1.4}
+#rlegs{padding:0 12px 6px;font-size:11px;max-height:26vh;overflow-y:auto}
+#rlegs .lgh{font-weight:700;color:var(--ink);padding:5px 0 3px;font-size:10.5px}
+#rlegs .lg{display:flex;justify-content:space-between;align-items:baseline;gap:8px;padding:4px 0;border-bottom:1px solid #f2f2f2;line-height:1.35}
+#rlegs .lg span{color:#444}
+#rlegs a{flex:0 0 auto;background:none;color:#2f6fb0;border:none;padding:0;font-size:11px;font-weight:700;white-space:nowrap}
 #rexport{background:#1f7a44!important;color:#fff!important;border-color:#1f7a44!important;font-weight:700}
 /* route history modal */
 #rhistmodal{display:none;position:fixed;inset:0;z-index:2000;background:rgba(0,0,0,.45);align-items:center;justify-content:center;padding:16px}
@@ -279,7 +289,8 @@ label.tog{display:inline-flex;align-items:center;gap:5px;font-size:12px;cursor:p
  <div class="sbtns"><button id="useloc">📍 My location</button><button id="setaddr">✏️ Address</button></div>
  <div class="slbl" style="margin-top:7px">🏁 End: <b id="endlabel">not set</b></div>
  <div class="sbtns"><button id="endsame">↩ Same as start</button><button id="endaddr">✏️ Address</button><button id="optroute">⚡ Optimize</button></div></div>
-<div id="rstops"></div><div id="rtotal" class="rtotal"></div>
+<div id="rmode"></div>
+<div id="rstops"></div><div id="rtotal" class="rtotal"></div><div id="rnote" class="rnote" style="display:none"></div><div id="rlegs" style="display:none"></div>
 <div class="act"><a id="gmap" href="#" target="_blank" rel="noopener">🧭 Open in Google Maps</a></div>
 <div class="act act2"><button id="rexport">⬇ HubSpot CSV</button><button id="rhist">🕘 History</button><button id="rclear">Clear</button></div></div>
 <div id="rhistmodal"><div class="hcard"><div class="hhdr"><b>Route history (this device)</b><button id="rhistx" aria-label="Close">×</button></div><div class="hbody"></div></div></div>
@@ -647,6 +658,55 @@ function render(){cluster.clearLayers();markers={};var vis=visible();var listEl=
 window.addRoute=function(id,d){d=d||DATA.find(x=>(x.lic||x.n)==id);if(!d)return;if(route.find(r=>(r.lic||r.n)==id))return;route.push(d);
  if(startPt)optimizeOrder();else drawRoute();}; // auto-order by proximity from start
 var routeLine=null,startPt=null,endPt=null,startMarker=null,endMarker=null;
+
+/* ===== Travel mode: drive / transit / bike / walk =====
+   275 of the stores on this map sit in the five boroughs, where a rep on the subway or a
+   bike beats a car. mph/circ are rough NY averages used ONLY for the panel estimate --
+   Google Maps gives the real time once the route is handed over. */
+var MODES={
+ driving  :{gm:'driving',  icon:'🚗',label:'Drive',  mph:31, circ:1.28, warn:0,   warnmsg:''},
+ transit  :{gm:'transit',  icon:'🚇',label:'Transit',mph:13, circ:1.35, warn:25,  warnmsg:'over 25 mi — NY transit thins out fast outside the five boroughs'},
+ bicycling:{gm:'bicycling',icon:'🚲',label:'Bike',   mph:9.5,circ:1.22, warn:12,  warnmsg:'over 12 mi — a long haul on a bike carrying samples'},
+ walking  :{gm:'walking',  icon:'🚶',label:'Walk',   mph:2.9,circ:1.25, warn:2.5, warnmsg:'over 2.5 mi on foot'}};
+var MODE=(function(){try{var m=localStorage.getItem('jbd_route_mode');return MODES[m]?m:'driving';}catch(e){return 'driving';}})();
+// Google's URL API only chains &waypoints for driving/bicycling/walking. Transit is
+// point-to-point ONLY -- a multi-stop transit day has to be handed over leg by leg,
+// which is why #rlegs exists.
+function modeSupportsWaypoints(){return MODE!=='transit';}
+function renderModes(){var el=document.getElementById('rmode');if(!el)return;
+ el.innerHTML=Object.keys(MODES).map(function(k){var m=MODES[k];
+  return '<button type="button" data-m="'+k+'" class="'+(k===MODE?'on':'')+'" title="Route by '+m.label.toLowerCase()+'"><b>'+m.icon+'</b>'+m.label+'</button>';}).join('');
+ Array.prototype.forEach.call(el.querySelectorAll('button'),function(b){b.onclick=function(){
+  MODE=b.getAttribute('data-m');try{localStorage.setItem('jbd_route_mode',MODE);}catch(e){}
+  drawRoute();};});}
+function routeLegPts(){var p=[];
+ if(startPt)p.push({name:startPt.label||'Start',lat:startPt.lat,lng:startPt.lng,q:startPt.lat+','+startPt.lng});
+ route.forEach(function(d){p.push({name:d.n,lat:d.lat,lng:d.lng,q:stopQuery(d)});});
+ if(endPt)p.push({name:endPt.label||'End',lat:endPt.lat,lng:endPt.lng,q:endPt.lat+','+endPt.lng});
+ return p;}
+function routeLegs(){var p=routeLegPts(),L=[],m=MODES[MODE];
+ for(var i=0;i<p.length-1;i++){var km=hav([p[i].lat,p[i].lng],[p[i+1].lat,p[i+1].lng]);
+  L.push({from:p[i],to:p[i+1],miles:km*0.621371*m.circ});}
+ return L;}
+function routeEstimate(){var m=MODES[MODE],legs=routeLegs(),mi=0;
+ legs.forEach(function(l){mi+=l.miles;});
+ return {legs:legs,miles:mi,mins:Math.round(mi/m.mph*60)};}
+function fmtMins(n){if(n<60)return n+' min';return Math.floor(n/60)+'h '+('0'+(n%60)).slice(-2)+'m';}
+function gmLegUrl(a,b){return 'https://www.google.com/maps/dir/?api=1&travelmode='+MODES[MODE].gm
+ +'&origin='+encodeURIComponent(a.q)+'&destination='+encodeURIComponent(b.q);}
+function renderLegs(){var el=document.getElementById('rlegs');if(!el)return;
+ var legs=routeLegs();
+ if(modeSupportsWaypoints()||legs.length<2){el.style.display='none';el.innerHTML='';return;}
+ el.style.display='block';
+ el.innerHTML='<div class="lgh">🚇 Transit legs — Google routes transit one hop at a time</div>'
+  +legs.map(function(l,i){return '<div class="lg"><span>'+(i+1)+'. '+esc(l.from.name)+' → '+esc(l.to.name)+'</span>'
+   +'<a href="'+esc(gmLegUrl(l.from,l.to))+'" target="_blank" rel="noopener">open ↗</a></div>';}).join('');}
+function renderNote(){var el=document.getElementById('rnote');if(!el)return;
+ var m=MODES[MODE],bad=0,worst=0;
+ routeLegs().forEach(function(l){if(m.warn&&l.miles>m.warn){bad++;if(l.miles>worst)worst=l.miles;}});
+ if(!bad){el.style.display='none';el.innerHTML='';return;}
+ el.style.display='block';
+ el.innerHTML='⚠️ '+bad+(bad===1?' leg ':' legs ')+m.warnmsg+' (longest ≈ '+worst.toFixed(1)+' mi). Split the day, or drive that hop.';}
 function hav(a,b){var R=6371,toR=function(x){return x*Math.PI/180;};var dLat=toR(b[0]-a[0]),dLng=toR(b[1]-a[1]);var s=Math.sin(dLat/2)*Math.sin(dLat/2)+Math.cos(toR(a[0]))*Math.cos(toR(b[0]))*Math.sin(dLng/2)*Math.sin(dLng/2);return 2*R*Math.asin(Math.sqrt(s));}
 function pathLen(start,arr,end){var t=0,cur=start;for(var i=0;i<arr.length;i++){t+=hav(cur,[arr[i].lat,arr[i].lng]);cur=[arr[i].lat,arr[i].lng];}if(end)t+=hav(cur,[end.lat,end.lng]);return t;}
 function optimizeOrder(){if(route.length<1){drawRoute();return;}
@@ -684,14 +744,20 @@ function drawRoute(){var rs=document.getElementById('rstops');rs.innerHTML='';do
  route.forEach(function(d,i){var e=document.createElement('div');e.className='rstop';e.innerHTML='<span>'+(i+1)+'. '+d.n+'</span><small>✕</small>';
   e.querySelector('small').onclick=function(){route.splice(i,1);if(startPt)optimizeOrder();else drawRoute();};rs.appendChild(e);});
  var td=document.getElementById('rtotal');
- if(td){if(route.length>=2){var st=startPt?[startPt.lat,startPt.lng]:[route[0].lat,route[0].lng];var km=pathLen(st,startPt?route:route.slice(1),endPt);td.textContent='≈ '+(km*0.621371).toFixed(1)+' mi'+(startPt?' from start':' (set a start)')+(endPt?' → end':'');}else td.textContent='';}
+ renderModes();renderNote();renderLegs();
+ var mm=MODES[MODE];
+ if(td){if(route.length>=2){var es=routeEstimate();
+   td.textContent='≈ '+es.miles.toFixed(1)+' mi · '+fmtMins(es.mins)+' '+mm.icon+(startPt?' from start':' (set a start)')+(endPt?' → end':'');
+   td.title='Rough estimate: straight-line distance × '+mm.circ+' route factor at ~'+mm.mph+' mph average ('+mm.label.toLowerCase()+' profile). Google Maps gives the real time.';
+  }else{td.textContent='';td.title='';}}
  if(startMarker){map.removeLayer(startMarker);startMarker=null;}if(endMarker){map.removeLayer(endMarker);endMarker=null;}
  if(startPt)startMarker=L.marker([startPt.lat,startPt.lng],{icon:pin('#2f6fb0','S')}).addTo(map);
  if(endPt)endMarker=L.marker([endPt.lat,endPt.lng],{icon:pin('#c0392b','E')}).addTo(map);
  if(routeLine)map.removeLayer(routeLine);
  var pts=route.map(function(d){return [d.lat,d.lng];});if(startPt)pts.unshift([startPt.lat,startPt.lng]);if(endPt)pts.push([endPt.lat,endPt.lng]);
  if(pts.length>1){routeLine=L.polyline(pts,{color:'#14241a',weight:3,opacity:.6,dashArray:'6,6'}).addTo(map);}
- document.getElementById('gmap').href=buildMapsUrl();}
+ var ga=document.getElementById('gmap');ga.href=buildMapsUrl();
+ ga.textContent=mm.icon+' Open in Google Maps'+((!modeSupportsWaypoints()&&routeLegs().length>1)?' (leg 1)':'');}
 
 /* ===== Google Maps handoff: route by VERIFIED ADDRESS (not approximate pins) ===== */
 var GMAP_MAX_WAYPOINTS=9; // Google's reliable cap for intermediate stops via the URL API
@@ -704,14 +770,17 @@ function routeStops(){var s=[];if(startPt)s.push({q:startPt.lat+','+startPt.lng,
  if(endPt)s.push({q:endPt.lat+','+endPt.lng,name:endPt.label||'End'});return s;}
 function buildMapsUrl(){var s=routeStops();if(!s.length)return '#';
  if(s.length===1)return 'https://www.google.com/maps/search/?api=1&query='+encodeURIComponent(s[0].q);
- var q=s.map(function(x){return encodeURIComponent(x.q);});
- var u='https://www.google.com/maps/dir/?api=1&travelmode=driving&origin='+q[0]+'&destination='+q[q.length-1];
+ var q=s.map(function(x){return encodeURIComponent(x.q);}),tm=MODES[MODE].gm;
+ var base='https://www.google.com/maps/dir/?api=1&travelmode='+tm+'&origin='+q[0];
+ // transit ignores &waypoints, so hand over leg 1 and let the #rlegs list carry the rest
+ if(!modeSupportsWaypoints())return base+'&destination='+q[1];
+ var u=base+'&destination='+q[q.length-1];
  var mids=q.slice(1,-1);if(mids.length)u+='&waypoints='+mids.join('%7C');return u;}
 
 /* ===== Route + visit logging (device + central) ===== */
 function repName(){var r=localStorage.getItem('jbd_rep');if(!r){r=prompt('Your name or initials (used on route logs + HubSpot export):');if(r){r=r.trim();if(r)localStorage.setItem('jbd_rep',r);}}return r||'';}
-function routeMiles(){if(route.length<2)return 0;var st=startPt?[startPt.lat,startPt.lng]:[route[0].lat,route[0].lng];return +(pathLen(st,startPt?route:route.slice(1),endPt)*0.621371).toFixed(1);}
-function routePayload(channel){return {rep:repName(),channel:channel||'gmaps',ts:new Date().toISOString(),
+function routeMiles(){if(route.length<2)return 0;return +routeEstimate().miles.toFixed(1);}
+function routePayload(channel){return {rep:repName(),channel:channel||'gmaps',ts:new Date().toISOString(),mode:MODE,modeLabel:MODES[MODE].label,minutes:routeEstimate().mins,
   start:startPt?startPt.label:null,end:endPt?endPt.label:null,miles:routeMiles(),mapsUrl:buildMapsUrl(),
   stops:route.map(function(d,i){return {order:i+1,name:d.n,lic:d.lic||'',addr:d.a||'',city:d.c||'',county:d.co||'',region:d.rg||'',role:d.role||'',dec:(d.dec==null?null:d.dec),lat:d.lat,lng:d.lng};})};}
 function logRoute(channel){var p=routePayload(channel);
@@ -741,13 +810,16 @@ function showHistory(){var h=[];try{h=JSON.parse(localStorage.getItem('jbd_route
  var b=document.querySelector('#rhistmodal .hbody');
  if(!h.length){b.innerHTML='<p style="color:#666">No routes logged yet on this device. Open a route in Google Maps or export to HubSpot and it will show here.</p>';}
  else{b.innerHTML=h.map(function(p){var when=esc((p.ts||'').slice(0,16).replace('T',' '));
-   return '<div class="hitem"><b>'+when+'</b> · '+(p.stops?p.stops.length:0)+' stops · '+(p.miles||0)+' mi · '+esc(p.channel||'')+(p.rep?' · '+esc(p.rep):'')
+   return '<div class="hitem"><b>'+when+'</b> · '+(p.stops?p.stops.length:0)+' stops · '+(p.miles||0)+' mi'+(p.modeLabel?' · '+esc(p.modeLabel):'')+' · '+esc(p.channel||'')+(p.rep?' · '+esc(p.rep):'')
     +'<br><small>'+(p.start?esc(p.start)+' → ':'')+(p.stops||[]).map(function(s){return esc(s.name);}).join(' → ')+(p.end?' → '+esc(p.end):'')+'</small>'
     +' <a href="'+esc(p.mapsUrl||'#')+'" target="_blank" rel="noopener">open</a></div>';}).join('');}
  document.getElementById('rhistmodal').style.display='flex';}
 
 document.getElementById('gmap').addEventListener('click',function(e){var s=routeStops();
  if(s.length<2){e.preventDefault();alert('Add at least one stop (a start helps) before opening Google Maps.');return;}
+ if(!modeSupportsWaypoints()){
+  if(s.length>2&&!confirm('Google Maps routes transit one hop at a time — it cannot chain '+(s.length-1)+' legs into a single trip.\n\nThis opens leg 1. Use the "Transit legs" list in the route panel for the rest.\n\nOpen leg 1?')){e.preventDefault();return;}
+  logRoute('gmaps_transit');return;}
  var mids=s.length-2;
  if(mids>GMAP_MAX_WAYPOINTS){if(!confirm('Heads up: Google Maps reliably routes ~'+GMAP_MAX_WAYPOINTS+' stops between your start and end. This route has '+mids+' in the middle, so Google may drop some. Split the day or trim stops for an accurate route.\n\nOpen anyway?')){e.preventDefault();return;}}
  logRoute('gmaps');});
