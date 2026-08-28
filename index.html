@@ -2,6 +2,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1"/>
 <title>Retail Intel NY — dispensary targeting</title>
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+<link rel="stylesheet" href="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.css"/>
 <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.css"/>
 <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.Default.css"/>
 <style>
@@ -324,6 +325,8 @@ label.tog{display:inline-flex;align-items:center;gap:5px;font-size:12px;cursor:p
 </div></div>
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script src="https://unpkg.com/leaflet.markercluster@1.5.3/dist/leaflet.markercluster.js"></script>
+<script src="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.js"></script>
+<script src="https://unpkg.com/@maplibre/maplibre-gl-leaflet@0.0.22/leaflet-maplibre-gl.js"></script>
 <script>
 var WINDOWS={"s": 31, "m": 61, "l": 91};
 var CATS=["baked", "beverage", "candy", "chocolate", "concentrate", "cooking", "edible", "flower", "joint", "pill", "tincture", "topical", "vape", "wellness"];
@@ -361,8 +364,26 @@ var ROSIN=new Set((window.ROSIN50||[]).map(function(x){return x.toUpperCase();})
 (window.ROSIN50||[]).forEach(function(l,i){ROSINRANK[l.toUpperCase()]=i+1;});
 function rosinTag(lic){var u=(lic||'').toUpperCase();return ROSIN.has(u)?'<span class="rosin" title="Top live-rosin target #'+ROSINRANK[u]+'">🎯'+ROSINRANK[u]+'</span>':'';}
 var route=[];
-var map=L.map('map').setView([41.2,-74.6],7);
-L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png',{attribution:'© OpenStreetMap © CARTO',maxZoom:19}).addTo(map);
+// maxZoom must live on the map now: it used to be inherited from the raster basemap's
+// tileLayer options, and a GL basemap supplies no zoom bounds of its own.
+var map=L.map('map',{maxZoom:19}).setView([41.2,-74.6],7);
+// Basemap: OpenFreeMap "positron" vector tiles. Same look as the CARTO Positron raster
+// we used until 2026-08-27, when CARTO began stamping "API KEY REQUIRED" diagonally
+// across every unauthenticated tile. OpenFreeMap needs no key and stays sharp at street
+// level — Esri's keyless gray canvas was the other candidate but has no data above z16.
+// Falls back to raster OSM if MapLibre is blocked or the device has no WebGL, so a
+// missing basemap can never leave a rep staring at a blank map.
+(function(){
+  try{
+    if(!L.maplibreGL)throw new Error('maplibre-gl-leaflet not loaded');
+    L.maplibreGL({style:'https://tiles.openfreemap.org/styles/positron',
+      attribution:'&copy; OpenStreetMap &copy; OpenFreeMap'}).addTo(map);
+  }catch(e){
+    console.error('Vector basemap unavailable ('+e.message+') — using raster OSM fallback');
+    L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png',
+      {attribution:'&copy; OpenStreetMap',maxZoom:19}).addTo(map);
+  }
+})();
 var cluster=L.markerClusterGroup({maxClusterRadius:45});map.addLayer(cluster);var markers={};
 // Marker size encodes momentum (momr = the store's pace vs the market median) and the
 // gold ring marks the top 100 by Pistil Store Rank — so size reads as growth, ring as scale.
