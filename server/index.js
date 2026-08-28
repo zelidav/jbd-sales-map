@@ -248,6 +248,37 @@ function extractText(response) {
   return response.content.filter((b) => b.type === 'text').map((b) => b.text).join('').trim();
 }
 
+// A turn can come back HTTP 200 and still be useless to the rep: it can hit the
+// max_tokens ceiling (answer cut off, or — when the cap lands inside a tool-use
+// block — no text at all), or be refused. Both used to render as a blank/half
+// bubble with a clean 200 in the logs, which is why this was invisible for weeks.
+// Fail loud instead of handing back a silent stub.
+function checkAnswer(response, text) {
+  if (response.stop_reason === 'refusal') {
+    return 'The model declined that request' +
+      (response.stop_details?.explanation ? ': ' + response.stop_details.explanation : '.');
+  }
+  if (response.stop_reason === 'max_tokens') {
+    return text
+      ? null // truncated but usable — flagged to the rep via `truncated` below
+      : 'The answer hit the length limit before any text came back. Narrow the question (one borough, or fewer stores) and try again.';
+  }
+  if (!text) {
+    return 'The model returned no text (stop_reason: ' + response.stop_reason + '). Try rephrasing the question.';
+  }
+  return null;
+}
+
+// Web search runs on Anthropic's side and reports failure as a 200 with an error
+// object inside the result block — nothing throws. Surface it so a silently
+// un-grounded answer doesn't read as a researched one.
+function searchErrors(response) {
+  return response.content
+    .filter((b) => b.type === 'web_search_tool_result' && b.content && !Array.isArray(b.content))
+    .map((b) => b.content.error_code)
+    .filter(Boolean);
+}
+
 const app = express();
 app.use(express.json({ limit: '2mb' }));
 app.set('trust proxy', true);
@@ -292,7 +323,11 @@ app.post('/chat', async (req, res) => {
 
     const params = {
       model: MODEL,
-      max_tokens: 2000,
+      // 2000 was far too low: a "top 15 doors + route" answer hit the ceiling and
+      // came back with ZERO text (the cap landed inside a tool-use block), so the
+      // rep got a blank bubble and the logs showed a clean 200. Reproduced
+      // 2026-08-26. Keep this well clear of a full table + route block.
+      max_tokens: 16000,
       // Web search lets the bot learn an unfamiliar brand's product line and pricing.
       // Everything about store performance still comes from the cached data below.
       tools: [{ type: 'web_search_20260209', name: 'web_search', max_uses: 4 }],
@@ -301,7 +336,10 @@ app.post('/chat', async (req, res) => {
         // Cache the big data block so follow-up questions are cheap. Caching is a
         // prefix match, so the per-request brand block MUST come after this one —
         // putting it before would invalidate the cache on every brand switch.
-        { type: 'text', text: 'ACCOUNT DATA (' + ACCOUNTS.length + ' doors):\n' + TABLE + (ORDERS_TEXT ? '\n\n' + ORDERS_TEXT : '') + (BRAND_TEXT ? '\n\n' + BRAND_TEXT : ''), cache_control: { type: 'ephemeral' } },
+        // 1h TTL, not the default 5m: reps ask a question every few minutes, so at
+        // 5m nearly every question paid a fresh ~178k-token cache WRITE (1.25x)
+        // instead of a read (0.1x) — ~$0.67 vs ~$0.05 per cold question.
+        { type: 'text', text: 'ACCOUNT DATA (' + ACCOUNTS.length + ' doors):\n' + TABLE + (ORDERS_TEXT ? '\n\n' + ORDERS_TEXT : '') + (BRAND_TEXT ? '\n\n' + BRAND_TEXT : ''), cache_control: { type: 'ephemeral', ttl: '1h' } },
         { type: 'text', text: brandContext(brand) },
       ],
       messages,
@@ -309,9 +347,21 @@ app.post('/chat', async (req, res) => {
 
     const response = await runWithSearch(params);
     const text = extractText(response);
+
+    const failure = checkAnswer(response, text);
+    if (failure) {
+      console.error('unusable answer:', response.stop_reason, '| output_tokens:', response.usage?.output_tokens, '|', failure);
+      return res.status(502).json({ error: failure });
+    }
+    const searchFailed = searchErrors(response);
+    if (searchFailed.length) console.warn('web search failed:', searchFailed.join(', '));
+
     res.json({
       reply: text,
       brand: brand || null,
+      // The rep needs to know the answer stopped early rather than finished.
+      truncated: response.stop_reason === 'max_tokens' || undefined,
+      search_error: searchFailed.length ? searchFailed.join(', ') : undefined,
       usage: response.usage,
     });
   } catch (err) {

@@ -1015,7 +1015,9 @@ async function botAsk(text){
     var res=await fetch(BOT_URL+'/chat',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({messages:botMsgs,brand:sellBrand||''})});
     var j=await res.json();
     if(!res.ok)throw new Error(j.error||('HTTP '+res.status));
-    var bub=wait.querySelector('.bub');bub.innerHTML=renderBot(j.reply);
+    var bub=wait.querySelector('.bub');bub.innerHTML=renderBot(j.reply)
+      +(j.truncated?'<div style="margin-top:6px;color:#b00;font-size:11px">⚠ Answer stopped early — ask for a narrower slice to see the rest.</div>':'')
+      +(j.search_error?'<div style="margin-top:6px;color:#b57;font-size:11px">⚠ Web lookup failed ('+esc(j.search_error)+') — this answer is from cached account data only.</div>':'');
     wireReply(wait);
     injectInlineAdds(bub);
     botMsgs.push({role:'assistant',content:j.reply});
