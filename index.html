@@ -58,7 +58,9 @@ label.tog{display:inline-flex;align-items:center;gap:5px;font-size:12px;cursor:p
 .leg{position:absolute;bottom:10px;left:10px;background:#fff;border:1px solid #ccc;border-radius:8px;padding:8px 10px;font-size:11px;z-index:1000}
 .leg span{display:inline-block;width:10px;height:10px;border-radius:50%;margin-right:5px;vertical-align:middle}
 /* ---- Sales bot ---- */
-#botbtn{position:absolute;bottom:18px;left:50%;transform:translateX(-50%);z-index:1200;background:var(--ink);color:#fff;border:1px solid #2c4235;border-radius:30px;padding:12px 20px;font-size:13.5px;font-weight:600;cursor:pointer;box-shadow:0 6px 22px rgba(0,0,0,.35);display:flex;align-items:center;gap:10px;min-width:min(430px,72vw);text-align:left}
+#mapact{position:absolute;bottom:18px;left:50%;transform:translateX(-50%);z-index:1200;display:flex;gap:8px;align-items:stretch}
+#planbtn{background:var(--gold);color:#14241a;border:none;border-radius:30px;padding:12px 18px;font-size:13.5px;font-weight:800;cursor:pointer;box-shadow:0 6px 22px rgba(0,0,0,.35);white-space:nowrap}
+#botbtn{background:var(--ink);color:#fff;border:1px solid #2c4235;border-radius:30px;padding:12px 20px;font-size:13.5px;font-weight:600;cursor:pointer;box-shadow:0 6px 22px rgba(0,0,0,.35);display:flex;align-items:center;gap:10px;min-width:min(370px,58vw);text-align:left;color:#fff;border:1px solid #2c4235;border-radius:30px;padding:12px 20px;font-size:13.5px;font-weight:600}
 #botbtn .ph{flex:1;color:#9db0a4;font-weight:400}
 #botbtn .kbd{background:rgba(255,255,255,.14);border-radius:5px;padding:2px 7px;font-size:11px;color:#cfe0d3}
 #botbtn .g{color:var(--gold)}
@@ -80,6 +82,33 @@ label.tog{display:inline-flex;align-items:center;gap:5px;font-size:12px;cursor:p
 .bm .bub th,.bm .bub td{padding:5px 8px;text-align:left;border-bottom:1px solid #e7eae6}
 .bm .bub th{background:#1f7a44;color:#fff;font-weight:600;border-bottom:none;white-space:nowrap}
 .bm .bub tr:nth-child(even) td{background:#f5f8f5}
+/* Planner. A centred card on a desktop, a bottom sheet on a phone. Inputs are 16px
+   because anything smaller makes iOS zoom the page on focus. */
+#planwrap{position:fixed;inset:0;background:rgba(10,20,14,.55);z-index:1750;display:none;align-items:center;justify-content:center}
+#planwrap.open{display:flex}
+#plan{background:#fff;border-radius:16px;width:400px;max-width:calc(100vw - 20px);max-height:92vh;overflow-y:auto;box-shadow:0 18px 50px rgba(0,0,0,.4)}
+#planhdr{background:linear-gradient(135deg,#1c3a28,#14241a);color:#fff;padding:15px 18px;display:flex;justify-content:space-between;align-items:center;border-radius:16px 16px 0 0;position:sticky;top:0}
+#planhdr h3{margin:0;font-size:16px}#planhdr .sub{font-size:11px;color:var(--gold);margin-top:2px}
+#planx{background:rgba(255,255,255,.16);border:none;color:#fff;border-radius:9px;width:34px;height:34px;font-size:20px;cursor:pointer}
+#planbody{padding:14px 18px 18px}
+.pf{margin-bottom:13px}
+.pf label{display:block;font-size:11.5px;font-weight:700;text-transform:uppercase;letter-spacing:.6px;color:#5a6b5e;margin-bottom:5px}
+.pf input,.pf select{width:100%;padding:11px 12px;border:1.5px solid #d2d8d2;border-radius:9px;font:inherit;font-size:16px;background:#f7f9f7;outline:none;-webkit-appearance:none;appearance:none}
+.pf input:focus,.pf select:focus{border-color:#1f7a44;background:#fff}
+.pf .two{display:flex;gap:9px}.pf .two>*{flex:1;min-width:0}
+.pf .hint{font-size:10.5px;color:#888;margin-top:4px}
+.pfrow{display:flex;gap:9px}.pfrow>.pf{flex:1;min-width:0}
+.pmini{background:#eef2ee;border:1px solid #d2d8d2;border-radius:8px;padding:9px;font-size:12px;cursor:pointer;font-weight:700;color:#2c4235;white-space:nowrap}
+#plango{width:100%;padding:15px;border:0;border-radius:11px;background:#1f7a44;color:#fff;font-size:16px;font-weight:800;cursor:pointer;margin-top:4px}
+#plango:disabled{opacity:.55;cursor:default}
+#planerr{color:#b00;font-size:12px;margin-top:9px;min-height:15px}
+#plancount{font-size:11.5px;color:#5a6b5e;background:#f0f5f1;border-radius:8px;padding:8px 10px;margin-bottom:13px}
+.rstop .eta{color:#1f7a44;font-weight:700;font-size:10.5px;margin-left:6px}
+@media(max-width:760px){
+  #planwrap{align-items:flex-end}
+  #plan{width:100%;max-width:none;border-radius:18px 18px 0 0;max-height:94vh}
+  #planhdr{border-radius:18px 18px 0 0}
+  #planbody{padding-bottom:calc(20px + env(safe-area-inset-bottom,0px))}}
 .routebtn{display:inline-block;margin:8px 0 2px;background:#1f7a44;color:#fff;border:none;border-radius:10px;padding:9px 14px;font-size:12.5px;font-weight:700;cursor:pointer;box-shadow:0 2px 6px rgba(31,122,68,.3)}
 .routeops,.opsdone{margin:8px 0 2px;background:#eef5ef;border-left:3px solid #1f7a44;border-radius:0 8px 8px 0;padding:8px 11px;font-size:12px;color:#14241a}
 .undobtn{margin-left:8px;background:#fff;border:1px solid #b9c6bc;border-radius:6px;padding:3px 9px;font-size:11px;font-weight:700;cursor:pointer}
@@ -228,8 +257,9 @@ label.tog{display:inline-flex;align-items:center;gap:5px;font-size:12px;cursor:p
   #route.min{left:auto;right:8px;width:auto;max-width:62vw;max-height:none}
   #route.min #rstart,#route.min #rstops,#route.min #rtotal,#route.min .act,#route.min .act2{display:none!important}
   #route.min h3{border-radius:8px}
-  #botbtn{bottom:calc(74px + env(safe-area-inset-bottom,0px));left:50%;transform:translateX(-50%);right:auto;padding:11px 15px;min-width:0;width:calc(100vw - 28px);z-index:1500}
-  body.popupopen #mobtoggle,body.popupopen #botbtn{display:none}
+  #mapact{bottom:calc(74px + env(safe-area-inset-bottom,0px));left:8px;right:8px;transform:none;flex-direction:column;gap:7px;z-index:1500}
+  #planbtn,#botbtn{width:100%;padding:13px 16px;min-width:0;justify-content:center}
+  body.popupopen #mobtoggle,body.popupopen #mapact{display:none}
   #bot{position:fixed;inset:0;left:0;right:0;top:0;bottom:0;width:100%;height:100vh;height:100dvh;max-width:none;max-height:none;border-radius:0;z-index:1700}
   #botmsgs{overscroll-behavior:contain;-webkit-overflow-scrolling:touch}
   #botq{padding-bottom:calc(9px + env(safe-area-inset-bottom,0px))}
@@ -388,12 +418,30 @@ window.PROFILE=null;
 <div class="act"><a id="gmap" href="#" target="_blank" rel="noopener">🧭 Open in Google Maps</a></div>
 <div class="act act2"><button id="rexport">⬇ HubSpot CSV</button><button id="rhist">🕘 History</button><button id="rclear">Clear</button></div></div>
 <div id="tripbar"><div class="th"><div class="tt"><b id="triptitle"></b><small id="tripsub"></small></div><button class="tx" id="tripx" title="Hide">×</button></div><div class="td" id="tripdays"></div><div class="tn" id="tripnote" style="display:none"></div><div class="tw" id="tripwarn" style="display:none"></div></div>
+<div id="planwrap"><div id="plan">
+ <div id="planhdr"><div><h3>Plan a day</h3><div class="sub">product, start, end, stops — we do the rest</div></div><button id="planx" aria-label="Close">×</button></div>
+ <div id="planbody">
+  <div id="plancount"></div>
+  <div class="pf"><label for="pcat">What are you selling</label>
+   <select id="pcat"></select>
+   <div class="hint">Stops are ranked by the dollars each door moves in this category.</div></div>
+  <div class="pf"><label for="pstart">Starting from</label>
+   <div class="two"><input id="pstart" type="text" placeholder="Address, city, or depot"/><button type="button" class="pmini" id="ploc">📍 Me</button></div></div>
+  <div class="pfrow">
+   <div class="pf"><label for="ptime">Leaving at</label><input id="ptime" type="time" value="09:00"/></div>
+   <div class="pf"><label for="pdwell">Mins per stop</label><input id="pdwell" type="number" min="5" max="180" step="5" value="30"/></div></div>
+  <div class="pf"><label for="pend">Ending at</label>
+   <div class="two"><input id="pend" type="text" placeholder="Leave blank for open-ended"/><button type="button" class="pmini" id="pround">↩ Round trip</button></div></div>
+  <div class="pf"><label for="pmax">Max stops</label><input id="pmax" type="number" min="1" max="15" step="1" value="8"/></div>
+  <button id="plango">Build my day</button>
+  <div id="planerr"></div>
+ </div></div></div>
 <div id="rhistmodal"><div class="hcard"><div class="hhdr"><b>Route history (this device)</b><button id="rhistx" aria-label="Close">×</button></div><div class="hbody"></div></div></div>
 <div id="rankmodal"><div class="lcard"><div class="lhdr"><b>🏆 Pistil Store Rank — performance leaderboard</b><button id="rankx" aria-label="Close">×</button></div><div class="lsub"></div><div class="lbody"></div></div></div>
 <div id="anmodal"><div class="acard"><div class="ahdr"><b>📋 Store analysis</b><button id="anx" aria-label="Close">×</button></div><div class="abody"></div></div></div>
 <div id="tgtmodal"><div class="tcard"><div class="thdr"><b>🎯 Ranked targets in view</b><button id="tgtx" aria-label="Close">×</button></div><div class="tsub"></div><div class="tbody"></div><div class="tact"><button id="tgtadd" class="pri">＋ Add top 10 to route</button><button id="tgtclose">Close</button></div></div></div>
 <div class="leg" id="leg"></div>
-<button id="botbtn">💬 <span class="ph" id="botph">Ask the bot to build or change your route…</span> <span class="kbd">/</span></button>
+<div id="mapact"><button id="planbtn">📋 Plan a day</button><button id="botbtn">💬 <span class="ph" id="botph">Ask the bot to build or change your route…</span> <span class="kbd">/</span></button></div>
 <div id="bot">
  <div id="bothdr"><div><h3>Retail Intel Bot</h3><div class="sub">617 NY doors · ask anything · get routes</div></div><button id="botx">×</button></div>
  <div id="botmsgs"></div>
@@ -931,13 +979,18 @@ function drawRoute(){var rs=document.getElementById('rstops');rs.innerHTML='';do
  var sc=document.getElementById('rstart');if(sc)sc.style.display=route.length>=2?'block':'none';
  var sl=document.getElementById('startlabel');if(sl)sl.textContent=startPt?startPt.label:'not set — uses first stop';
  var el=document.getElementById('endlabel');if(el)el.textContent=endPt?endPt.label:'not set (open-ended)';
- route.forEach(function(d,i){var e=document.createElement('div');e.className='rstop';e.innerHTML='<span>'+(i+1)+'. '+d.n+'</span><small>✕</small>';
+ var sched=schedule();
+ route.forEach(function(d,i){var e=document.createElement('div');e.className='rstop';
+  var eta=sched?'<span class="eta">'+fmtClock(sched.rows[i].arrive)+'</span>':'';
+  e.innerHTML='<span>'+(i+1)+'. '+d.n+eta+'</span><small>✕</small>';
   e.querySelector('small').onclick=function(){route.splice(i,1);if(startPt)optimizeOrder();else drawRoute();};rs.appendChild(e);});
  var td=document.getElementById('rtotal');
  renderModes();renderNote();renderLegs();renderCod();
  var mm=MODES[MODE];
  if(td){if(route.length>=2){var es=routeEstimate();
    td.textContent='≈ '+es.miles.toFixed(1)+' mi · '+fmtMins(es.mins)+' '+mm.icon+(startPt?' from start':' (set a start)')+(endPt?' → end':'');
+   if(sched)td.textContent+=' · done '+fmtClock(sched.finish)
+     +(sched.finish-dayStart>11*60?' ⚠ over 11h':'');
    td.title='Rough estimate: straight-line distance × '+mm.circ+' route factor at '
     +(MODE==='driving'?'a pace that scales with leg length (24 mph local → 55 mph highway)':'~'+mm.mph+' mph average ('+mm.label.toLowerCase()+' profile)')
     +'. Google Maps gives the real time.';
@@ -950,6 +1003,28 @@ function drawRoute(){var rs=document.getElementById('rstops');rs.innerHTML='';do
  if(pts.length>1){routeLine=L.polyline(pts,{color:'#14241a',weight:3,opacity:.6,dashArray:'6,6'}).addTo(map);}
  var ga=document.getElementById('gmap');ga.href=buildMapsUrl();
  ga.textContent=mm.icon+' Open in Google Maps'+((!modeSupportsWaypoints()&&routeLegs().length>1)?' (leg 1)':'');}
+
+/* ===== The clock =============================================================
+   A route with no times is a list. With a departure time and a dwell figure it is a
+   day, and the rep can see the thing that actually decides whether a plan is real:
+   what time they get home. Drive times come from the same leg estimate the panel
+   shows; dwell is whatever the rep set in the planner. */
+var dayStart=null, dwellMin=30;
+function fmtClock(m){m=((Math.round(m)%1440)+1440)%1440;var h=Math.floor(m/60),mm=m%60;
+ var ap=h<12?'AM':'PM',hh=h%12;if(!hh)hh=12;
+ return hh+':'+('0'+mm).slice(-2)+' '+ap;}
+function schedule(){
+ if(dayStart==null||!route.length)return null;
+ var legs=routeLegs(),t=dayStart,rows=[],i=0;
+ // routeLegs() starts at the start point when one is set; without one the first leg
+ // already runs stop 1 -> stop 2, so stop 1 is simply the departure time.
+ var k=startPt?0:-1;
+ for(i=0;i<route.length;i++){
+  if(k>=0&&legs[k])t+=legs[k].miles/legMph(legs[k].miles)*60;
+  rows.push({arrive:t,depart:t+dwellMin});
+  t+=dwellMin;k++;}
+ if(endPt&&legs[k])t+=legs[k].miles/legMph(legs[k].miles)*60;
+ return {rows:rows,finish:t};}
 
 /* ===== Google Maps handoff: route by VERIFIED ADDRESS (not approximate pins) ===== */
 var GMAP_MAX_WAYPOINTS=9; // Google's reliable cap for intermediate stops via the URL API
@@ -1119,7 +1194,9 @@ function renderBot(text){
 /* The route as the bot needs to see it. */
 function botRouteState(){return {
   stops:route.map(function(d,i){return {order:i+1,name:d.n,lic:d.lic||'',city:d.c||''};}),
-  start:startPt?startPt.label:null,end:endPt?endPt.label:null,mode:MODE};}
+  start:startPt?startPt.label:null,end:endPt?endPt.label:null,mode:MODE,
+  depart:dayStart==null?null:fmtClock(dayStart),minutes_per_stop:dwellMin,
+  finishes:(function(){var s=schedule();return s?fmtClock(s.finish):null;})()};}
 
 /* ---- Applying route edits -------------------------------------------------
    The bot emits operations against the live route rather than a replacement list,
@@ -1293,7 +1370,7 @@ function botGreeting(){
   BOT_SUGGEST.forEach(function(s){var b=document.createElement('button');b.textContent=s;b.onclick=function(){botAsk(s);};c.appendChild(b);});
 }
 
-document.getElementById('botbtn').onclick=function(){document.getElementById('bot').classList.add('open');this.style.display='none';if(!botMsgs.length)botGreeting();botin.focus();};
+document.getElementById('botbtn').onclick=function(){document.getElementById('bot').classList.add('open');document.getElementById('mapact').style.display='none';if(!botMsgs.length)botGreeting();botin.focus();};
 // "/" anywhere outside a field opens the bot -- the ask bar advertises the shortcut.
 document.addEventListener('keydown',function(e){
  if(e.key!=='/'||e.metaKey||e.ctrlKey||e.altKey)return;
@@ -1302,7 +1379,7 @@ document.addEventListener('keydown',function(e){
  e.preventDefault();
  if(!document.getElementById('bot').classList.contains('open'))document.getElementById('botbtn').click();
  else botin.focus();});
-document.getElementById('botx').onclick=function(){document.getElementById('bot').classList.remove('open');document.getElementById('botbtn').style.display='flex';};
+document.getElementById('botx').onclick=function(){document.getElementById('bot').classList.remove('open');document.getElementById('mapact').style.display='';};
 botsend.onclick=function(){botAsk(botin.value);};
 botin.addEventListener('keydown',function(e){if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();botAsk(botin.value);}});
 botin.addEventListener('input',function(){this.style.height='auto';this.style.height=Math.min(this.scrollHeight,90)+'px';});
@@ -1373,6 +1450,107 @@ function renderTripBar(trip,active,missing){
   w.textContent='⚠️ '+missing.length+' stop'+(missing.length===1?'':'s')+' in this link '
    +(missing.length===1?'is':'are')+' not on the current map data: '+missing.join(', ');}
  else{w.style.display='none';}}
+/* ===== Day planner ===========================================================
+   Picks stops out of whatever the filters currently show, so the planner composes
+   with the sidebar instead of quietly disagreeing with it -- the count at the top of
+   the form says exactly how many doors it is choosing from.
+
+   Selection is value per mile of detour, not raw value: a $200k door an hour off the
+   road costs more day than it is worth, and picking purely by dollars produced
+   exactly that. Sequencing is left to the existing optimiser. */
+function planCandidates(cat){
+ return visible().filter(function(d){
+  if(!d.lat||!d.lng)return false;
+  if(!cat)return true;
+  return d.cat&&d.cat[cat]&&d.cat[cat].v>0;});}
+function planValue(d,cat){
+ if(cat)return (d.cat&&d.cat[cat]&&d.cat[cat].v)||0;
+ var t=0;for(var c in (d.cat||{}))t+=d.cat[c].v||0;return t;}
+function planPick(cands,cat,start,end,maxStops){
+ // hav() returns KILOMETRES. Everything the rep sees is miles, so convert once here
+ // rather than letting the two units meet somewhere in the middle of the scoring.
+ var base=end?hav([start.lat,start.lng],[end.lat,end.lng])*0.621371:0;
+ var budget=end?Math.max(25,Math.min(60,base*0.45)):55;   // miles of detour allowed
+ var scored=[];
+ cands.forEach(function(d){
+  var p=[d.lat,d.lng];
+  var detourMi=end?((hav([start.lat,start.lng],p)+hav(p,[end.lat,end.lng]))*0.621371-base)
+                  :hav([start.lat,start.lng],p)*0.621371;
+  if(detourMi>budget)return;
+  var v=planValue(d,cat);
+  if(!v)return;
+  scored.push({d:d,v:v,detour:detourMi,score:v/(1+detourMi/8)});});
+ scored.sort(function(a,b){return b.score-a.score;});
+ return scored.slice(0,maxStops).map(function(x){return x.d;});}
+function openPlan(){
+ var sel=document.getElementById('pcat');
+ if(!sel.options.length){
+  sel.innerHTML='<option value="">Anything — rank by total store volume</option>'
+   +CATS_BY_SIZE.map(function(c){return '<option value="'+c+'">'+cl(c)+'</option>';}).join('');
+  if(activeCats.size){var first=null;activeCats.forEach(function(c){if(!first)first=c;});sel.value=first;}
+ }
+ if(startPt&&!document.getElementById('pstart').value)document.getElementById('pstart').value=startPt.label;
+ document.getElementById('pdwell').value=dwellMin;
+ var n=planCandidates(sel.value).length;
+ document.getElementById('plancount').innerHTML='Planning from <b>'+n+'</b> door'+(n===1?'':'s')
+  +' currently shown by your filters. Change the filters to widen or narrow that.';
+ document.getElementById('planerr').textContent='';
+ document.getElementById('planwrap').classList.add('open');}
+function closePlan(){document.getElementById('planwrap').classList.remove('open');}
+document.getElementById('planbtn').onclick=openPlan;
+document.getElementById('planx').onclick=closePlan;
+document.getElementById('planwrap').addEventListener('click',function(e){if(e.target===this)closePlan();});
+document.getElementById('pcat').onchange=function(){
+ var n=planCandidates(this.value).length;
+ document.getElementById('plancount').innerHTML='Planning from <b>'+n+'</b> door'+(n===1?'':'s')
+  +' currently shown by your filters. Change the filters to widen or narrow that.';};
+document.getElementById('ploc').onclick=function(){
+ if(!navigator.geolocation){document.getElementById('planerr').textContent='Location is not available on this device.';return;}
+ var b=this,old=b.textContent;b.textContent='…';b.disabled=true;
+ navigator.geolocation.getCurrentPosition(function(p){
+   b.textContent=old;b.disabled=false;
+   document.getElementById('pstart').value=p.coords.latitude.toFixed(5)+','+p.coords.longitude.toFixed(5);},
+  function(err){b.textContent=old;b.disabled=false;
+   document.getElementById('planerr').textContent='Could not get your location: '+err.message;},
+  {enableHighAccuracy:true,timeout:10000,maximumAge:60000});};
+document.getElementById('pround').onclick=function(){
+ document.getElementById('pend').value=document.getElementById('pstart').value;};
+/* "40.58,-73.65" is accepted as-is so the location button does not need a round trip
+   to the geocoder for a point we already have exactly. */
+function planPoint(txt){
+ var m=/^\s*(-?\d+(?:\.\d+)?)\s*,\s*(-?\d+(?:\.\d+)?)\s*$/.exec(txt||'');
+ if(m)return Promise.resolve({lat:+m[1],lng:+m[2],label:'My location'});
+ return geocodeP(txt);}
+document.getElementById('plango').onclick=function(){
+ var btn=this,err=document.getElementById('planerr');
+ var cat=document.getElementById('pcat').value;
+ var startTxt=document.getElementById('pstart').value.trim();
+ var endTxt=document.getElementById('pend').value.trim();
+ var maxStops=Math.max(1,Math.min(15,+document.getElementById('pmax').value||8));
+ var dwell=Math.max(5,Math.min(180,+document.getElementById('pdwell').value||30));
+ var tm=/^(\d{1,2}):(\d{2})$/.exec(document.getElementById('ptime').value||'09:00');
+ err.textContent='';
+ if(!startTxt){err.textContent='Where are you starting from?';return;}
+ btn.disabled=true;btn.textContent='Finding stops…';
+ function done(msg){btn.disabled=false;btn.textContent='Build my day';if(msg)err.textContent=msg;}
+ planPoint(startTxt).then(function(sp){
+  return (endTxt?planPoint(endTxt):Promise.resolve(null)).then(function(ep){
+   var cands=planCandidates(cat);
+   var picks=planPick(cands,cat,sp,ep,maxStops);
+   if(!picks.length){done('Nothing within reach of that route. Try a wider category, more slack on the filters, or a different start.');return;}
+   dwellMin=dwell;
+   dayStart=tm?(+tm[1]*60 + +tm[2]):9*60;
+   route=picks;startPt=sp;endPt=ep;
+   optimizeOrder();                      // sequence them; drawRoute() runs inside
+   var pts=route.map(function(d){return [d.lat,d.lng];});
+   pts.push([sp.lat,sp.lng]);if(ep)pts.push([ep.lat,ep.lng]);
+   try{map.fitBounds(L.latLngBounds(pts).pad(0.18));}catch(e){}
+   closePlan();done();
+   if(window.innerWidth<=760)document.getElementById('side').classList.remove('open');
+   document.getElementById('route').classList.remove('min');
+  });
+ }).catch(function(e){done('Could not find that location — try adding a city and state.');});};
+
 /* ===== Saved filters + saved routes ==========================================
    Both live on the rep's profile, so the set of filters someone works out at a desk
    is there on the phone in the car. Saving sends the whole list back, which makes a
@@ -1417,8 +1595,12 @@ function applyFilterState(f){
  render();}
 function routeState(){return {stops:route.map(function(d){return d.lic||d.n;}),
   s:startPt?[startPt.lat,startPt.lng,startPt.label]:null,
-  e:endPt?[endPt.lat,endPt.lng,endPt.label]:null,m:MODE};}
-function applyRouteState(r){loadTripDay({d:[{l:'Saved route',st:r.stops,s:r.s,e:r.e,m:r.m}]},0);}
+  e:endPt?[endPt.lat,endPt.lng,endPt.label]:null,m:MODE,
+  t:dayStart,w:dwellMin};}
+function applyRouteState(r){
+ if(typeof r.t==='number')dayStart=r.t;
+ if(typeof r.w==='number')dwellMin=r.w;
+ loadTripDay({d:[{l:'Saved route',st:r.stops,s:r.s,e:r.e,m:r.m}]},0);}
 function pushSaved(kind){var p=window.PROFILE;if(!p)return Promise.resolve();
  return fetch(BOT_URL+'/me/save',{method:'POST',headers:{'Content-Type':'application/json'},
    body:JSON.stringify({email:p.email,code:p.code,kind:kind,items:p[kind]||[]})})
