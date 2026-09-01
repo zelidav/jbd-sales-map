@@ -1067,6 +1067,11 @@ var botMsgs=[],botBusy=false;
 var botmsgs=document.getElementById('botmsgs'),botin=document.getElementById('botin'),botsend=document.getElementById('botsend');
 
 function esc(s){return String(s).replace(/[&<>]/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;'}[c];});}
+// esc() is for TEXT. An attribute must also survive the double quotes inside a JSON
+// payload: a data- attribute holding JSON truncates at the first quote and comes back
+// unparseable. Use this for anything going into an attribute.
+function escAttr(s){var M={};M['&']='&amp;';M['<']='&lt;';M['>']='&gt;';M[String.fromCharCode(34)]='&quot;';M[String.fromCharCode(39)]='&#39;';
+ return String(s).replace(/[&<>"']/g,function(c){return M[c];});}
 function inl(s){return esc(s).replace(/\*\*(.+?)\*\*/g,'<b>$1</b>').replace(/`([^`]+)`/g,'<code>$1</code>');}
 
 // Lightweight markdown -> html, with special handling for ```route blocks and tables.
@@ -1081,11 +1086,11 @@ function renderBot(text){
       i++; // skip closing fence
       if(lang==='route'){
         var ids=body.map(function(x){return x.trim();}).filter(Boolean);
-        out.push('<button class="routebtn" data-route="'+esc(JSON.stringify(ids))+'">📍 Plot route ('+ids.length+' stops) on map</button>');
+        out.push('<button class="routebtn" data-route="'+escAttr(JSON.stringify(ids))+'">📍 Plot route ('+ids.length+' stops) on map</button>');
       } else if(lang==='route-ops'){
         // Applied on arrival rather than behind a button: the rep asked for the change,
         // and an Undo is a cheaper way to be safe than a confirm they must hunt for.
-        out.push('<div class="routeops" data-ops="'+esc(body.join('\n'))+'">applying…</div>');
+        out.push('<div class="routeops" data-ops="'+escAttr(body.join('\n'))+'">applying…</div>');
       } else { out.push('<pre style="background:#eef0ec;padding:6px;border-radius:6px;overflow-x:auto;font-size:12px">'+esc(body.join('\n'))+'</pre>'); }
       continue;
     }
