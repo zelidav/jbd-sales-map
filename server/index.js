@@ -125,6 +125,27 @@ let ORDERS = null;
 try { ORDERS = JSON.parse(readFileSync(new URL('./orders_summary.json', import.meta.url))); }
 catch { console.warn('orders_summary.json not found — product-mix knowledge disabled'); }
 
+/* What the rep currently has on the map. Sent with every message and rendered
+   AFTER the cached account block, so a route that changes on every turn never
+   invalidates the ~178k-token cache. */
+function routeContext(r) {
+  if (!r || typeof r !== 'object') return 'CURRENT ROUTE: none — the route builder on the map is empty.';
+  const stops = Array.isArray(r.stops) ? r.stops.slice(0, 60) : [];
+  if (!stops.length && !r.start && !r.end) return 'CURRENT ROUTE: none — the route builder on the map is empty.';
+  let s = 'CURRENT ROUTE ON THE REP\'S MAP (this is live — edit THIS, do not rebuild from scratch unless asked):\n';
+  s += `  Start: ${r.start ? String(r.start).slice(0, 200) : 'not set'}\n`;
+  s += `  End: ${r.end ? String(r.end).slice(0, 200) : 'not set (open-ended)'}\n`;
+  s += `  Travel mode: ${String(r.mode || 'driving').slice(0, 20)}\n`;
+  s += stops.length ? '  Stops, in visit order:\n' : '  Stops: none yet\n';
+  stops.forEach((st, i) => {
+    s += `    ${i + 1}. ${String(st.name || '').slice(0, 120)}`
+      + (st.lic ? ` [${String(st.lic).slice(0, 40)}]` : '')
+      + (st.city ? ` — ${String(st.city).slice(0, 80)}` : '') + '\n';
+  });
+  s += 'Refer to these stops by name or license when you change them.\n';
+  return s;
+}
+
 // ----- Statewide brand-rank intelligence (Pistil brand exports) -----
 let BRAND = null;
 try { BRAND = JSON.parse(readFileSync(new URL('./brand_intel.json', import.meta.url))); }
@@ -194,6 +215,12 @@ FIELD MEANINGS
 - momentum_vs_market_pct (MOST ACTIONABLE): the store's momentum minus the market median. The whole NY market grows, so judge relative: positive = accelerating faster than the typical store (push, secure shelf space); negative = cooling relative to the market (defend, investigate).
 - cod_only_list ("2x", "3x"): NY OCM publishes a list of retail licensees that other licensees may sell to on a CASH-ON-DELIVERY basis only — no credit terms. The number is how many of the last 3 published editions the door appeared on. This is a terms-and-collections fact, NOT a reason to skip the door: plenty of high-volume stores are on it. Say it plainly whenever you recommend a COD door ("sell it COD, no terms"), and treat 3x — on every edition — as a real AR risk worth raising with the rep before they extend anything. A door with no value here simply was not on the published list.
 - days_since_order / hist_rev_usd: recency and historical revenue with the rep's own company.
+  NEVER state, imply or estimate a relationship or a revenue figure that is not literally in
+  the row. A BLANK hist_rev_usd means the door has NEVER ordered from us -- it is not an
+  unknown to be filled in, and a "New Prospect"/"Priority T1-T3" role means exactly that, no
+  matter how big the door is in Pistil terms. Getting this wrong sends a rep into a prospect
+  talking like it is an established account. If you are about to describe how a door buys
+  from us, re-read its role and hist_rev_usd first and quote them as they are.
 - region/county/city/neighborhood: geography for routing.
 
 TARGETING WITHOUT A BRAND (the common case)
@@ -231,14 +258,51 @@ KEEP IT FOCUSED (size control)
 - If a routing request is very complex, ask the rep to constrain it first — a region, a single day, or a stop cap (8-10) — and suggest how.
 
 ROUTING
-- REQUIRED BEFORE ANY ROUTE: you must have BOTH a starting location and an ending location from the rep. If asked for a route or day plan without both, do NOT output a route block — ask "Where are you starting from, and where do you want to end the day? (You can also set these with the 📍 Start / 🏁 End buttons in the Route builder.)"
-- With start + end, build an efficient geographic order from start toward end (group by neighborhood/county, minimize backtracking) and explain the logic in 1-2 lines.
-- THEN emit the stops as a fenced code block tagged "route", one account per line using its exact license (preferred) or exact name, in visit order:
+You both BUILD routes and EDIT the one already on the rep's map. The live route is given
+to you above under CURRENT ROUTE. When the rep says "drop the Utica stop", "add two
+premium flower doors near Albany", "start me from Long Beach", "flip the order", "make it
+a round trip" — act on that route. Do not silently rebuild it from scratch; that throws
+away stops they chose.
+
+- A start helps but is not a gate. If one is already set, use it. If not, and the request
+  implies one ("from Brooklyn", "leaving Albany"), set it yourself with a start op. Only
+  ask when there is genuinely no way to tell where they begin.
+- An END IS OPTIONAL — an open-ended day is a normal thing to plan. Never refuse to build
+  a route because no end was given.
+- Order stops geographically from start toward end: group by county/neighbourhood and do
+  not backtrack. Say in one or two lines why the order is what it is.
+- Default to 6-10 stops for a full day. Say plainly when a day is too long to be real.
+
+TO CHANGE THE ROUTE, emit a fenced block tagged "route-ops" holding a JSON array of
+operations, applied in order. Stops are named by exact license (preferred) or exact name:
+\`\`\`route-ops
+[{"op":"remove","ids":["OCM-CAURD-24-000076"]},
+ {"op":"add","ids":["OCM-CAURD-23-000033"]},
+ {"op":"start","address":"Long Beach, NY"},
+ {"op":"optimize"}]
+\`\`\`
+The operations available:
+- {"op":"add","ids":[...]}                 append stops to the end
+- {"op":"insert","after":"<id>","ids":[…]} insert straight after an existing stop
+- {"op":"remove","ids":[...]}              drop stops
+- {"op":"move","id":"<id>","to":3}         move a stop to position 3 (1-based)
+- {"op":"set","ids":[...]}                 replace every stop, in this order
+- {"op":"start"|"end","address":"…"}       set start/end by address (geocoded), or pass
+                                           "lat"/"lng"/"label" if you have coordinates
+- {"op":"end","same_as_start":true}        make it a round trip
+- {"op":"mode","mode":"driving|transit|bicycling|walking"}
+- {"op":"optimize"}                        re-order the stops for the shortest path
+- {"op":"clear"}                           empty the route
+Emit route-ops ONLY for an actual change to the route, and put every change for one
+request in a SINGLE block. The map applies it immediately and shows the rep an Undo.
+
+For a brand-new route where nothing is worth preserving you may still use the older
+"route" block, which replaces the stop list wholesale:
 \`\`\`route
 OCM-RETL-25-000306
 OCM-CAURD-24-000177
 \`\`\`
-- Only emit a route block when a route or day plan is actually requested. Default to 6-10 stops.`;
+Prefer route-ops whenever a route already exists.`;
 
 const anthropic = new Anthropic();
 
@@ -359,6 +423,7 @@ app.post('/chat', async (req, res) => {
         // instead of a read (0.1x) — ~$0.67 vs ~$0.05 per cold question.
         { type: 'text', text: 'ACCOUNT DATA (' + ACCOUNTS.length + ' doors):\n' + TABLE + (ORDERS_TEXT ? '\n\n' + ORDERS_TEXT : '') + (BRAND_TEXT ? '\n\n' + BRAND_TEXT : ''), cache_control: { type: 'ephemeral', ttl: '1h' } },
         { type: 'text', text: brandContext(brand) },
+        { type: 'text', text: routeContext(req.body?.route) },
       ],
       messages,
     };

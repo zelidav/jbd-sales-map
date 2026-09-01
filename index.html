@@ -57,9 +57,11 @@ label.tog{display:inline-flex;align-items:center;gap:5px;font-size:12px;cursor:p
 .leg{position:absolute;bottom:10px;left:10px;background:#fff;border:1px solid #ccc;border-radius:8px;padding:8px 10px;font-size:11px;z-index:1000}
 .leg span{display:inline-block;width:10px;height:10px;border-radius:50%;margin-right:5px;vertical-align:middle}
 /* ---- Sales bot ---- */
-#botbtn{position:absolute;bottom:18px;right:18px;z-index:1200;background:var(--ink);color:#fff;border:none;border-radius:30px;padding:11px 16px;font-size:13px;font-weight:600;cursor:pointer;box-shadow:0 3px 12px rgba(0,0,0,.3);display:flex;align-items:center;gap:7px}
+#botbtn{position:absolute;bottom:18px;left:50%;transform:translateX(-50%);z-index:1200;background:var(--ink);color:#fff;border:1px solid #2c4235;border-radius:30px;padding:12px 20px;font-size:13.5px;font-weight:600;cursor:pointer;box-shadow:0 6px 22px rgba(0,0,0,.35);display:flex;align-items:center;gap:10px;min-width:min(430px,72vw);text-align:left}
+#botbtn .ph{flex:1;color:#9db0a4;font-weight:400}
+#botbtn .kbd{background:rgba(255,255,255,.14);border-radius:5px;padding:2px 7px;font-size:11px;color:#cfe0d3}
 #botbtn .g{color:var(--gold)}
-#bot{position:absolute;bottom:18px;right:18px;z-index:1300;width:390px;max-width:calc(100vw - 24px);height:600px;max-height:calc(100vh - 36px);background:#fff;border-radius:18px;box-shadow:0 12px 40px rgba(0,0,0,.3);display:none;flex-direction:column;overflow:hidden}
+#bot{position:absolute;bottom:18px;right:18px;z-index:1300;width:420px;max-width:calc(100vw - 24px);height:600px;max-height:calc(100vh - 36px);background:#fff;border-radius:18px;box-shadow:0 12px 40px rgba(0,0,0,.3);display:none;flex-direction:column;overflow:hidden}
 #bot.open{display:flex}
 #bothdr{background:linear-gradient(135deg,#1c3a28,#14241a);color:#fff;padding:14px 16px;display:flex;justify-content:space-between;align-items:center;flex:0 0 auto}
 #bothdr h3{margin:0;font-size:15px;font-weight:700;letter-spacing:.2px}#bothdr .sub{font-size:10.5px;color:var(--gold);margin-top:2px}
@@ -78,6 +80,8 @@ label.tog{display:inline-flex;align-items:center;gap:5px;font-size:12px;cursor:p
 .bm .bub th{background:#1f7a44;color:#fff;font-weight:600;border-bottom:none;white-space:nowrap}
 .bm .bub tr:nth-child(even) td{background:#f5f8f5}
 .routebtn{display:inline-block;margin:8px 0 2px;background:#1f7a44;color:#fff;border:none;border-radius:10px;padding:9px 14px;font-size:12.5px;font-weight:700;cursor:pointer;box-shadow:0 2px 6px rgba(31,122,68,.3)}
+.routeops,.opsdone{margin:8px 0 2px;background:#eef5ef;border-left:3px solid #1f7a44;border-radius:0 8px 8px 0;padding:8px 11px;font-size:12px;color:#14241a}
+.undobtn{margin-left:8px;background:#fff;border:1px solid #b9c6bc;border-radius:6px;padding:3px 9px;font-size:11px;font-weight:700;cursor:pointer}
 .addchips{margin-top:10px;display:flex;flex-wrap:wrap;gap:6px;align-items:center}
 .addchips .aclabel{width:100%;font-size:9.5px;color:#7a8a7f;text-transform:uppercase;letter-spacing:.5px;font-weight:700;margin-bottom:1px}
 .addchip{background:#fff;border:1.5px solid #1f7a44;color:#1f7a44;border-radius:15px;padding:6px 11px;font-size:11.5px;font-weight:600;cursor:pointer;touch-action:manipulation}
@@ -223,7 +227,7 @@ label.tog{display:inline-flex;align-items:center;gap:5px;font-size:12px;cursor:p
   #route.min{left:auto;right:8px;width:auto;max-width:62vw;max-height:none}
   #route.min #rstart,#route.min #rstops,#route.min #rtotal,#route.min .act,#route.min .act2{display:none!important}
   #route.min h3{border-radius:8px}
-  #botbtn{bottom:calc(18px + env(safe-area-inset-bottom,0px));right:14px;padding:11px 15px;z-index:1500}
+  #botbtn{bottom:calc(74px + env(safe-area-inset-bottom,0px));left:50%;transform:translateX(-50%);right:auto;padding:11px 15px;min-width:0;width:calc(100vw - 28px);z-index:1500}
   body.popupopen #mobtoggle,body.popupopen #botbtn{display:none}
   #bot{position:fixed;inset:0;left:0;right:0;top:0;bottom:0;width:100%;height:100vh;height:100dvh;max-width:none;max-height:none;border-radius:0;z-index:1700}
   #botmsgs{overscroll-behavior:contain;-webkit-overflow-scrolling:touch}
@@ -378,7 +382,8 @@ window.PROFILE=null;
  <div class="slbl" style="margin-top:7px">🏁 End: <b id="endlabel">not set</b></div>
  <div class="sbtns"><button id="endsame">↩ Same as start</button><button id="endaddr">✏️ Address</button><button id="optroute">⚡ Optimize</button></div></div>
 <div id="rmode"></div>
-<div id="rstops"></div><div id="rtotal" class="rtotal"></div><div id="rnote" class="rnote" style="display:none"></div><div id="rcod" class="rnote rcod" style="display:none"></div><div id="rlegs" style="display:none"></div>
+<div id="rstops"></div><div id="rtotal" class="rtotal"></div>
+<div class="act2" style="padding:0 12px 9px"><button id="rask" style="width:100%;font-size:11px;padding:6px;border:1px dashed #b9c6bc;background:#f7faf7;color:#2c4235;border-radius:6px;cursor:pointer">✏️ Ask the bot to change this route</button></div><div id="rnote" class="rnote" style="display:none"></div><div id="rcod" class="rnote rcod" style="display:none"></div><div id="rlegs" style="display:none"></div>
 <div class="act"><a id="gmap" href="#" target="_blank" rel="noopener">🧭 Open in Google Maps</a></div>
 <div class="act act2"><button id="rexport">⬇ HubSpot CSV</button><button id="rhist">🕘 History</button><button id="rclear">Clear</button></div></div>
 <div id="tripbar"><div class="th"><div class="tt"><b id="triptitle"></b><small id="tripsub"></small></div><button class="tx" id="tripx" title="Hide">×</button></div><div class="td" id="tripdays"></div><div class="tn" id="tripnote" style="display:none"></div><div class="tw" id="tripwarn" style="display:none"></div></div>
@@ -387,7 +392,7 @@ window.PROFILE=null;
 <div id="anmodal"><div class="acard"><div class="ahdr"><b>📋 Store analysis</b><button id="anx" aria-label="Close">×</button></div><div class="abody"></div></div></div>
 <div id="tgtmodal"><div class="tcard"><div class="thdr"><b>🎯 Ranked targets in view</b><button id="tgtx" aria-label="Close">×</button></div><div class="tsub"></div><div class="tbody"></div><div class="tact"><button id="tgtadd" class="pri">＋ Add top 10 to route</button><button id="tgtclose">Close</button></div></div></div>
 <div class="leg" id="leg"></div>
-<button id="botbtn">💬 Ask the <span class="g">Sales Bot</span></button>
+<button id="botbtn">💬 <span class="ph" id="botph">Ask the bot to build or change your route…</span> <span class="kbd">/</span></button>
 <div id="bot">
  <div id="bothdr"><div><h3>Retail Intel Bot</h3><div class="sub">617 NY doors · ask anything · get routes</div></div><button id="botx">×</button></div>
  <div id="botmsgs"></div>
@@ -917,6 +922,10 @@ function setStartByAddress(){var a=prompt('Starting address or place (e.g. "Alba
 function setEndByAddress(){var a=prompt('Ending address or place (where you want to finish the day):');if(a)geocode(a,setEnd);}
 function pin(color,letter){return L.divIcon({className:'',html:'<div style="background:'+color+';color:#fff;border:2px solid #fff;border-radius:50%;width:22px;height:22px;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;box-shadow:0 0 4px rgba(0,0,0,.5)">'+letter+'</div>',iconSize:[22,22]});}
 function drawRoute(){var rs=document.getElementById('rstops');rs.innerHTML='';document.getElementById('rcount').textContent=route.length;
+ // The ask bar names what the bot is holding, so editing feels available rather than hidden.
+ var ph=document.getElementById('botph');
+ if(ph)ph.textContent=route.length?('Ask the bot to change your '+route.length+'-stop route\u2026')
+   :'Ask the bot to build or change your route\u2026';
  document.getElementById('route').style.display=(route.length||window.innerWidth>760)?'flex':'none';
  var sc=document.getElementById('rstart');if(sc)sc.style.display=route.length>=2?'block':'none';
  var sl=document.getElementById('startlabel');if(sl)sl.textContent=startPt?startPt.label:'not set — uses first stop';
@@ -1007,6 +1016,17 @@ document.getElementById('gmap').addEventListener('click',function(e){var s=route
  var mids=s.length-2;
  if(mids>GMAP_MAX_WAYPOINTS){if(!confirm('Heads up: Google Maps reliably routes ~'+GMAP_MAX_WAYPOINTS+' stops between your start and end. This route has '+mids+' in the middle, so Google may drop some. Split the day or trim stops for an accurate route.\n\nOpen anyway?')){e.preventDefault();return;}}
  logRoute('gmaps');});
+/* Undo for a bot route edit. Delegated, because the button is written into a chat
+   bubble after the fact. */
+document.addEventListener('click',function(e){
+ var b=e.target.closest&&e.target.closest('.undobtn');
+ if(!b||!routeUndo)return;
+ restoreRoute(routeUndo);routeUndo=null;
+ b.parentNode.innerHTML='\u21a9 Undone — the route is back as it was.';});
+document.getElementById('rask').onclick=function(){
+ document.getElementById('botbtn').click();
+ botin.value=route.length?'Change my route: ':'Build me a route: ';
+ botin.focus();};
 document.getElementById('rexport').onclick=exportHubspot;
 document.getElementById('rhist').onclick=showHistory;
 document.getElementById('rhistx').onclick=function(){document.getElementById('rhistmodal').style.display='none';};
@@ -1062,6 +1082,10 @@ function renderBot(text){
       if(lang==='route'){
         var ids=body.map(function(x){return x.trim();}).filter(Boolean);
         out.push('<button class="routebtn" data-route="'+esc(JSON.stringify(ids))+'">📍 Plot route ('+ids.length+' stops) on map</button>');
+      } else if(lang==='route-ops'){
+        // Applied on arrival rather than behind a button: the rep asked for the change,
+        // and an Undo is a cheaper way to be safe than a confirm they must hunt for.
+        out.push('<div class="routeops" data-ops="'+esc(body.join('\n'))+'">applying…</div>');
       } else { out.push('<pre style="background:#eef0ec;padding:6px;border-radius:6px;overflow-x:auto;font-size:12px">'+esc(body.join('\n'))+'</pre>'); }
       continue;
     }
@@ -1085,6 +1109,78 @@ function renderBot(text){
   }
   return out.join('');
 }
+
+/* The route as the bot needs to see it. */
+function botRouteState(){return {
+  stops:route.map(function(d,i){return {order:i+1,name:d.n,lic:d.lic||'',city:d.c||''};}),
+  start:startPt?startPt.label:null,end:endPt?endPt.label:null,mode:MODE};}
+
+/* ---- Applying route edits -------------------------------------------------
+   The bot emits operations against the live route rather than a replacement list,
+   so the stops a rep chose by hand survive an edit. Everything is applied in one
+   go and the previous route is kept for a single-click Undo -- which is what makes
+   it safe to let the bot act immediately instead of behind a confirm button. */
+var routeUndo=null;
+function snapshotRoute(){return {stops:route.slice(),start:startPt,end:endPt,mode:MODE};}
+function restoreRoute(sn){route=sn.stops.slice();startPt=sn.start;endPt=sn.end;
+ MODE=MODES[sn.mode]?sn.mode:MODE;drawRoute();}
+function findStops(ids){var out=[];(ids||[]).forEach(function(x){var d=findStop(x);if(d&&out.indexOf(d)<0)out.push(d);});return out;}
+function idxOf(id){var d=findStop(id);return d?route.indexOf(d):-1;}
+function geocodeP(q){return new Promise(function(res,rej){
+  if(!q)return rej(new Error('no address'));
+  geocode(q,function(lat,lng,label){res({lat:lat,lng:lng,label:label||q});});});}
+
+/* Applies one op, returning a promise (start/end may need geocoding) and a note. */
+function applyOp(o,notes){
+ var op=String(o&&o.op||'').toLowerCase();
+ function pt(cb){
+  if(typeof o.lat==='number'&&typeof o.lng==='number')return Promise.resolve({lat:o.lat,lng:o.lng,label:o.label||(o.lat.toFixed(3)+','+o.lng.toFixed(3))});
+  return geocodeP(o.address||o.label);}
+ if(op==='add'||op==='set'){
+  var add=findStops(o.ids);
+  if(op==='set'){route=add;notes.push('set '+add.length+' stop'+(add.length===1?'':'s'));}
+  else{var n=0;add.forEach(function(d){if(route.indexOf(d)<0){route.push(d);n++;}});notes.push('added '+n);}
+  return Promise.resolve();}
+ if(op==='insert'){
+  var at=idxOf(o.after);var ins=findStops(o.ids).filter(function(d){return route.indexOf(d)<0;});
+  if(at<0)route=route.concat(ins);else route=route.slice(0,at+1).concat(ins,route.slice(at+1));
+  notes.push('inserted '+ins.length);return Promise.resolve();}
+ if(op==='remove'){
+  var gone=0;findStops(o.ids).forEach(function(d){var i=route.indexOf(d);if(i>=0){route.splice(i,1);gone++;}});
+  notes.push('removed '+gone);return Promise.resolve();}
+ if(op==='move'){
+  var i=idxOf(o.id);if(i<0){notes.push('could not find a stop to move');return Promise.resolve();}
+  var d=route.splice(i,1)[0];var to=Math.max(0,Math.min(route.length,(+o.to||1)-1));
+  route.splice(to,0,d);notes.push('moved '+d.n+' to '+(to+1));return Promise.resolve();}
+ if(op==='clear'){route=[];startPt=null;endPt=null;notes.push('cleared the route');return Promise.resolve();}
+ if(op==='optimize'){optimizeOrder();notes.push('re-ordered for the shortest path');return Promise.resolve();}
+ if(op==='mode'){if(MODES[o.mode]){MODE=o.mode;try{localStorage.setItem('jbd_route_mode',MODE);}catch(e){}notes.push('switched to '+MODES[MODE].label.toLowerCase());}return Promise.resolve();}
+ if(op==='start')return pt().then(function(p){startPt=p;notes.push('start = '+p.label);});
+ if(op==='end'){
+  if(o.same_as_start){if(startPt){endPt={lat:startPt.lat,lng:startPt.lng,label:'Back to start'};notes.push('made it a round trip');}return Promise.resolve();}
+  return pt().then(function(p){endPt=p;notes.push('end = '+p.label);});}
+ notes.push('ignored an unknown operation "'+op+'"');
+ return Promise.resolve();}
+
+function applyRouteOps(ops,btn){
+ if(!Array.isArray(ops)||!ops.length)return;
+ var before=snapshotRoute(),notes=[];
+ var chain=Promise.resolve();
+ ops.forEach(function(o){chain=chain.then(function(){return applyOp(o,notes);});});
+ chain.then(function(){
+   routeUndo=before;drawRoute();
+   var pts=route.map(function(d){return [d.lat,d.lng];});
+   if(startPt)pts.push([startPt.lat,startPt.lng]);
+   if(endPt)pts.push([endPt.lat,endPt.lng]);
+   if(pts.length>1){try{map.fitBounds(L.latLngBounds(pts).pad(0.18));}catch(e){}}
+   if(window.innerWidth<=760)document.getElementById('bot').classList.remove('open');
+   if(btn){btn.outerHTML='<div class="opsdone">✓ '+esc(notes.join(' · '))
+     +' — now '+route.length+' stop'+(route.length===1?'':'s')
+     +' <button class="undobtn">Undo</button></div>';}
+ }).catch(function(e){
+   restoreRoute(before);
+   if(btn)btn.outerHTML='<div class="opsdone" style="color:#b00">⚠ Could not apply that change ('+esc(e.message)+') — the route is unchanged.</div>';
+ });}
 
 function plotRoute(ids){
   document.getElementById('rclear').click();
@@ -1132,6 +1228,11 @@ function injectInlineAdds(bubEl){
   });
 }
 function wireReply(d){
+  d.querySelectorAll('.routeops').forEach(function(el){
+    var ops=null;
+    try{ops=JSON.parse(el.dataset.ops);}catch(e){}
+    if(!Array.isArray(ops)){el.outerHTML='<div class="opsdone" style="color:#b00">⚠ The bot sent a route change I could not read — the route is unchanged.</div>';return;}
+    applyRouteOps(ops,el);});
   d.querySelectorAll('.routebtn').forEach(function(btn){
     btn.onclick=function(){var n=plotRoute(JSON.parse(btn.dataset.route));btn.textContent=n?('✓ Plotted '+n+' stops — see map & Route builder'):'Could not match these stops';btn.disabled=true;btn.style.opacity=.7;};
   });
@@ -1152,7 +1253,10 @@ async function botAsk(text){
   var wait=addBubble('assistant','<span class="tip">thinking…</span>');
   try{
     // Send the selected brand so the bot answers for that brand's actual product line.
-    var res=await fetch(BOT_URL+'/chat',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({messages:botMsgs,brand:sellBrand||''})});
+    // Send the live route too: without it the bot cannot edit what the rep is
+    // looking at, only replace it.
+    var res=await fetch(BOT_URL+'/chat',{method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({messages:botMsgs,brand:sellBrand||'',route:botRouteState()})});
     var j=await res.json();
     if(!res.ok)throw new Error(j.error||('HTTP '+res.status));
     var bub=wait.querySelector('.bub');bub.innerHTML=renderBot(j.reply)
@@ -1172,7 +1276,9 @@ var BOT_SUGGEST=[
   "Top 10 reactivation targets by lost revenue",
   "Plan a Brooklyn day route hitting slipping accounts + top prospects",
   "Which high-quality doors are premium-tier on flower?",
-  "Best new prospects in the Mid-Hudson region"
+  "Best new prospects in the Mid-Hudson region",
+  "Add two premium flower doors near Albany to my route",
+  "Drop the weakest stop and re-order the day"
 ];
 function botGreeting(){
   botmsgs.innerHTML='';
@@ -1182,6 +1288,14 @@ function botGreeting(){
 }
 
 document.getElementById('botbtn').onclick=function(){document.getElementById('bot').classList.add('open');this.style.display='none';if(!botMsgs.length)botGreeting();botin.focus();};
+// "/" anywhere outside a field opens the bot -- the ask bar advertises the shortcut.
+document.addEventListener('keydown',function(e){
+ if(e.key!=='/'||e.metaKey||e.ctrlKey||e.altKey)return;
+ var t=e.target,tag=(t&&t.tagName||'').toLowerCase();
+ if(tag==='input'||tag==='textarea'||(t&&t.isContentEditable))return;
+ e.preventDefault();
+ if(!document.getElementById('bot').classList.contains('open'))document.getElementById('botbtn').click();
+ else botin.focus();});
 document.getElementById('botx').onclick=function(){document.getElementById('bot').classList.remove('open');document.getElementById('botbtn').style.display='flex';};
 botsend.onclick=function(){botAsk(botin.value);};
 botin.addEventListener('keydown',function(e){if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();botAsk(botin.value);}});
