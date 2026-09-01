@@ -11,6 +11,10 @@ SERVICE="${SERVICE:-jbd-sales-bot}"
 BOT_MODEL="${BOT_MODEL:-claude-sonnet-4-6}"
 ALLOWED_ORIGIN="${ALLOWED_ORIGIN:-*}"
 KEY_SECRET="${KEY_SECRET:-SALESBOT_ANTHROPIC_API_KEY}"
+# Rep profiles (sign-in + saved routes/filters) live in this bucket; INVITE_CODE is what
+# lets a new rep create a profile for themselves.
+PROFILE_BUCKET="${PROFILE_BUCKET:-jbd-sales-map-profiles}"
+INVITE_CODE="${INVITE_CODE:-JBNY123}"
 
 cd "$(dirname "$0")"
 
@@ -38,7 +42,7 @@ gcloud run deploy "$SERVICE" \
   --timeout 300 \
   --concurrency 40 \
   --max-instances 3 \
-  --set-env-vars "BOT_MODEL=${BOT_MODEL},ALLOWED_ORIGIN=${ALLOWED_ORIGIN}" \
+  --set-env-vars "BOT_MODEL=${BOT_MODEL},ALLOWED_ORIGIN=${ALLOWED_ORIGIN},PROFILE_BUCKET=${PROFILE_BUCKET},INVITE_CODE=${INVITE_CODE}" \
   --set-secrets "ANTHROPIC_API_KEY=${KEY_SECRET}:latest"
 
 URL=$(gcloud run services describe "$SERVICE" --project "$PROJECT" --region "$REGION" --format='value(status.url)')

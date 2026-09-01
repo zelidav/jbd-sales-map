@@ -1,5 +1,5 @@
 {
-  "t": "Long Beach → Syracuse · Jerome Baker run",
+  "t": "Long Beach → Syracuse · premium flower run",
   "rep": "John",
   "a": 0,
   "d": [
@@ -9,32 +9,29 @@
       "s": [40.5885, -73.6579, "Long Beach, NY"],
       "e": [43.0481, -76.1474, "Syracuse, NY (overnight)"],
       "st": [
-        "OCM-CAURD-23-000035",
-        "OCM-CAURD-24-000069",
-        "OCM-CAURD-24-000104",
-        "OCM-CAURD-24-000088",
-        "OCM-RETL-24-000130",
-        "OCM-CAURD-23-000033",
-        "OCM-CAURD-24-000076"
+        "OCM-CAURD-25-000245",
+        "OCM-CAURD-24-000165",
+        "OCM-CAURD-24-000131",
+        "OCM-CAURD-24-000109",
+        "OCM-RETL-24-000224",
+        "OCM-CAURD-23-000033"
       ],
-      "note": "Top **JB-fit** doors on the drive line (fit 75–92). Farmingdale first, then straight up the Hudson and west on the Thruway. **Tight day** — if you leave late, drop Utica (Exit 31) and pick it up on the way home.",
+      "note": "New doors only, every one a **premium flower** seller, and all kept clear of our live accounts. Runs due west then north — **no Long Island leg**, Farmingdale is a backtrack from Long Beach. Amsterdam is the only stop worth making in the four-hour Albany→Syracuse stretch.",
       "m": "driving"
     },
     {
       "b": "Day 2",
-      "l": "Syracuse area",
+      "l": "Syracuse → Ithaca",
       "s": [43.0481, -76.1474, "Syracuse, NY"],
-      "e": [42.60765, -76.16698, "Cortland (LakeHouse) — head south from here"],
+      "e": [42.49465, -76.59406, "Ithaca — NY-17 east for home"],
       "st": [
-        "OCM-CAURD-24-000172",
         "OCM-CAURD-24-000081",
-        "OCM-CAURD-24-000159",
-        "OCM-CAURD-24-000198",
-        "OCM-CAURD-23-000010",
         "OCM-CAURD-24-000134",
-        "OCM-RETL-25-000347"
+        "OCM-RETL-25-000347",
+        "OCM-RETL-24-000009",
+        "OCM-RETL-24-000177"
       ],
-      "note": "North-to-south sweep of Onondaga County, ~65 mi total — a light drive, so these are the long conversations. **Flynnstoned Walton St is COD-only** (OCM list). Ends at LakeHouse in Cortland, right on I-81 south for the ride home.",
+      "note": "Every new premium-flower door around Syracuse that clears our existing accounts — there are only five, so this is a light drive and long conversations. Works north to south and finishes pointing home.",
       "m": "driving"
     }
   ]

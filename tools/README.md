@@ -47,6 +47,8 @@ cd ../..
 python tools/build_store_rank.py     # psr / svol / mom / momr + var WINDOWS
 python tools/build_prospects.py      # off-map top performers
 python tools/build_category_fit.py   # per-category $/units/price/tier + quality tier + var CATS
+# (build_fp_fit.py is gone: the JB/Dragonfly two-brand fit score it wrote was dead
+#  data -- nothing in the app read it. Targeting is per-category price tier + volume.)
 python tools/build_brand_carriage.py # per-door brand carriage + var BRANDS
 python tools/build_brand_profiles.py # what each brand sells -> server/brand_profiles.json
 python tools/sync_accounts.py        # refresh the bot dataset (carries cat/qt/br through)

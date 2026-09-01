@@ -1,5 +1,6 @@
 import express from 'express';
 import { readFileSync } from 'node:fs';
+import * as profiles from './profiles.js';
 import Anthropic from '@anthropic-ai/sdk';
 
 const PORT = process.env.PORT || 8080;
@@ -73,8 +74,13 @@ catch { console.warn('brand_profiles.json not found — brand product profiles d
 // table stays cached across brand switches (prefix match: volatile content last).
 function brandContext(brand) {
   if (!brand) {
-    return 'NO BRAND SELECTED. The rep has not said what they are selling. If their question '
-      + 'depends on it ("who should I pitch", "where is the whitespace"), ask which brand first.';
+    return 'NO BRAND SELECTED, and that is fine. The account table below is fully queryable '
+      + 'without one: category, price tier, customer quality, decile, store rank, momentum and '
+      + 'geography are all per-door facts. Answer the question directly from them. Do NOT ask '
+      + 'which brand the rep is selling unless the question is genuinely brand-specific -- who '
+      + 'stocks BRAND X, where is the whitespace for BRAND X, does BRAND X fit here. '
+      + '"Prem flower stores near Syracuse", "best doors in the Capital District", "who is '
+      + 'accelerating on vapes" are complete questions. Answer them.';
   }
   const p = PROFILES && PROFILES[brand];
   const carried = ACCOUNTS.filter((d) => d.br && d.br[brand]);
@@ -171,7 +177,9 @@ const TODAY = process.env.TODAY || new Date().toISOString().slice(0, 10);
 
 const INSTRUCTIONS = `You are Retail Intel NY — a field-sales strategist for reps selling cannabis products into licensed New York dispensaries. Today is ${TODAY}.
 
-You are BRAND-AGNOSTIC. Reps who use you sell different brands. The brand the current rep is selling appears in a "THE REP IS SELLING" block below; everything you say about product fit must be grounded in THAT brand's real product mix, not in assumptions.
+You are BRAND-AGNOSTIC. Reps who use you sell different brands. If the rep has told you which one, it appears in a "THE REP IS SELLING" block below, and anything you then say about that brand's product fit must be grounded in its real product mix rather than assumptions.
+
+ANSWER WHAT WAS ASKED. Most questions do not need a brand at all. Every door in the table carries its own category mix, price tier, customer quality, decile, store rank, momentum and location, so a question phrased in those terms is already complete -- "prem flower stores near Syracuse", "top vape doors in Brooklyn", "who is cooling in the Hudson Valley". Answer it from the data. Ask which brand only when the answer genuinely depends on one: carriage, whitespace, or whether a specific brand fits a specific door. Never open with a clarifying question that the account table already answers.
 
 You have the full live account list below (the same data shown on the field map). Use ONLY this data plus web_search — never invent stores, numbers, or contacts. If something isn't in the data, say so.
 
@@ -188,7 +196,17 @@ FIELD MEANINGS
 - days_since_order / hist_rev_usd: recency and historical revenue with the rep's own company.
 - region/county/city/neighborhood: geography for routing.
 
-MATCHING A BRAND TO A DOOR
+TARGETING WITHOUT A BRAND (the common case)
+Read the request as a filter over the table and apply it literally:
+- a category word ("flower", "prerolls", "vapes", "edibles") -> the door's top_categories entry for it
+- "prem" / "premium" / "high-end" -> price_tier Prem in THAT category; "value" / "cheap" -> Value
+- "near <place>" / "around <place>" -> city, county, region, or lat/lng proximity to it
+- "best" / "top" with nothing else -> customer_quality H, then store_rank, then momentum
+Rank the matches by dollars in the category asked about -- not by the door's overall size --
+and name the number you ranked on. A door that is Prem on flower but moves $3k of it is a
+price accident, not a premium flower door; say so rather than listing it high.
+
+MATCHING A SPECIFIC BRAND TO A DOOR (only when a brand is in play)
 1. Start from what the rep's brand actually sells — its categories, its share of each, and its average price point (given in the "THE REP IS SELLING" block).
 2. Find doors that move volume in those SAME categories. A tincture brand belongs in doors that sell tinctures, not in the biggest flower doors.
 3. Match the price tier. A brand whose average menu price is high belongs in Prem-tier doors for that category; a value brand belongs in Value-tier doors. Say which tier you are matching and why.
@@ -428,6 +446,32 @@ app.post('/visit-log', async (req, res) => {
     catch (e) { hubspot = 'error: ' + (e.message || e); console.error('hubspot visit-log error:', e); }
   }
   res.json({ ok: true, hubspot });
+});
+
+/* ----- Rep profiles: sign-in, plus saved filters and saved routes -----
+   Thin HTTP over profiles.js. Every route reports the store's own error status so a
+   misconfigured bucket says so instead of looking like a bad password. */
+function profileErr(res, e) {
+  const status = e.status || 500;
+  if (status >= 500) console.error('profile error:', e);
+  res.status(status).json({ error: e.message || 'profile store failed' });
+}
+
+app.get('/auth/status', (req, res) => res.json({ configured: profiles.configured() }));
+
+app.post('/auth/register', async (req, res) => {
+  const b = req.body || {};
+  try { res.json(await profiles.register(b)); } catch (e) { profileErr(res, e); }
+});
+
+app.post('/auth/login', async (req, res) => {
+  const b = req.body || {};
+  try { res.json(await profiles.login(b)); } catch (e) { profileErr(res, e); }
+});
+
+app.post('/me/save', async (req, res) => {
+  const b = req.body || {};
+  try { res.json(await profiles.save(b)); } catch (e) { profileErr(res, e); }
 });
 
 // Best-effort review endpoint (this instance only — Cloud Logging is the source of truth).
