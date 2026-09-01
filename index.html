@@ -187,6 +187,19 @@ label.tog{display:inline-flex;align-items:center;gap:5px;font-size:12px;cursor:p
 .trow .tv{flex:0 0 92px;text-align:right;font-size:11.5px;font-weight:700;color:#14241a;font-variant-numeric:tabular-nums}
 .trow .tadd{flex:0 0 auto;background:#fff;border:1.5px solid #1f7a44;color:#1f7a44;border-radius:14px;padding:4px 10px;font-size:11px;font-weight:700;cursor:pointer}
 .trow .tadd.done{background:#eef3ee;border-color:#cfe0d3;color:#86a08c}
+#tripbar{position:fixed;top:10px;left:50%;transform:translateX(-50%);z-index:1400;background:#14241a;color:#fff;border-radius:12px;box-shadow:0 4px 18px rgba(0,0,0,.35);font-size:12px;max-width:min(560px,92vw);display:none}
+#tripbar .th{display:flex;align-items:center;gap:10px;padding:8px 10px 8px 13px}
+#tripbar .tt{flex:1;min-width:0;line-height:1.35}
+#tripbar .tt b{display:block;font-size:12.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+#tripbar .tt small{color:#9db0a4;font-size:10.5px}
+#tripbar .tx{background:none;border:none;color:#9db0a4;font-size:18px;line-height:1;cursor:pointer;padding:0 4px}
+#tripbar .td{display:flex;gap:6px;padding:0 10px 9px 13px;flex-wrap:wrap}
+#tripbar .td button{background:#22382a;color:#dfe8e1;border:1px solid #34503d;border-radius:999px;padding:5px 11px;font-size:11.5px;font-weight:700;cursor:pointer}
+#tripbar .td button.on{background:#c9a24b;color:#14241a;border-color:#c9a24b}
+#tripbar .tn{padding:0 13px 10px;color:#c8d5cb;font-size:11px;line-height:1.5;border-top:1px solid #24392c;margin-top:2px;padding-top:8px}
+#tripbar .tw{padding:0 13px 10px;color:#ffbf8a;font-size:11px}
+@media(max-width:760px){#tripbar{top:auto;bottom:calc(74px + env(safe-area-inset-bottom,0px));max-width:94vw}
+ body.popupopen #tripbar{display:none!important}}
 /* mobile controls (hidden on desktop) */
 #sheetclose{display:none;position:absolute;top:9px;right:10px;background:rgba(255,255,255,.18);border:none;color:#fff;width:36px;height:36px;border-radius:8px;font-size:24px;line-height:1;cursor:pointer;align-items:center;justify-content:center;z-index:5;touch-action:manipulation}
 #mobtoggle{display:none;position:absolute;z-index:1500;background:var(--ink);color:#fff;border:none;border-radius:26px;padding:13px 20px;font-size:14px;font-weight:700;box-shadow:0 4px 16px rgba(0,0,0,.4);align-items:center;gap:8px;cursor:pointer;touch-action:manipulation}
@@ -310,6 +323,7 @@ label.tog{display:inline-flex;align-items:center;gap:5px;font-size:12px;cursor:p
 <div id="rstops"></div><div id="rtotal" class="rtotal"></div><div id="rnote" class="rnote" style="display:none"></div><div id="rcod" class="rnote rcod" style="display:none"></div><div id="rlegs" style="display:none"></div>
 <div class="act"><a id="gmap" href="#" target="_blank" rel="noopener">🧭 Open in Google Maps</a></div>
 <div class="act act2"><button id="rexport">⬇ HubSpot CSV</button><button id="rhist">🕘 History</button><button id="rclear">Clear</button></div></div>
+<div id="tripbar"><div class="th"><div class="tt"><b id="triptitle"></b><small id="tripsub"></small></div><button class="tx" id="tripx" title="Hide">×</button></div><div class="td" id="tripdays"></div><div class="tn" id="tripnote" style="display:none"></div><div class="tw" id="tripwarn" style="display:none"></div></div>
 <div id="rhistmodal"><div class="hcard"><div class="hhdr"><b>Route history (this device)</b><button id="rhistx" aria-label="Close">×</button></div><div class="hbody"></div></div></div>
 <div id="rankmodal"><div class="lcard"><div class="lhdr"><b>🏆 Pistil Store Rank — performance leaderboard</b><button id="rankx" aria-label="Close">×</button></div><div class="lsub"></div><div class="lbody"></div></div></div>
 <div id="anmodal"><div class="acard"><div class="ahdr"><b>📋 Store analysis</b><button id="anx" aria-label="Close">×</button></div><div class="abody"></div></div></div>
@@ -745,9 +759,15 @@ function routeLegs(){var p=routeLegPts(),L=[],m=MODES[MODE];
  for(var i=0;i<p.length-1;i++){var km=hav([p[i].lat,p[i].lng],[p[i+1].lat,p[i+1].lng]);
   L.push({from:p[i],to:p[i+1],miles:km*0.621371*m.circ});}
  return L;}
-function routeEstimate(){var m=MODES[MODE],legs=routeLegs(),mi=0;
- legs.forEach(function(l){mi+=l.miles;});
- return {legs:legs,miles:mi,mins:Math.round(mi/m.mph*60)};}
+/* Driving pace is not one number: a 3-mile hop in Brooklyn and a 60-mile run up the
+   Thruway are not the same road. Applying the city average to a highway day overstated
+   a Long Beach -> Syracuse run by ~5 hours. Transit/bike/walk keep a flat pace -- theirs
+   really is roughly constant. */
+function legMph(mi){if(MODE!=='driving')return MODES[MODE].mph;
+ return mi<8?24:mi<25?34:mi<60?48:55;}
+function routeEstimate(){var legs=routeLegs(),mi=0,mins=0;
+ legs.forEach(function(l){mi+=l.miles;mins+=l.miles/legMph(l.miles)*60;});
+ return {legs:legs,miles:mi,mins:Math.round(mins)};}
 function fmtMins(n){if(n<60)return n+' min';return Math.floor(n/60)+'h '+('0'+(n%60)).slice(-2)+'m';}
 function gmLegUrl(a,b){return 'https://www.google.com/maps/dir/?api=1&travelmode='+MODES[MODE].gm
  +'&origin='+encodeURIComponent(a.q)+'&destination='+encodeURIComponent(b.q);}
@@ -813,7 +833,9 @@ function drawRoute(){var rs=document.getElementById('rstops');rs.innerHTML='';do
  var mm=MODES[MODE];
  if(td){if(route.length>=2){var es=routeEstimate();
    td.textContent='≈ '+es.miles.toFixed(1)+' mi · '+fmtMins(es.mins)+' '+mm.icon+(startPt?' from start':' (set a start)')+(endPt?' → end':'');
-   td.title='Rough estimate: straight-line distance × '+mm.circ+' route factor at ~'+mm.mph+' mph average ('+mm.label.toLowerCase()+' profile). Google Maps gives the real time.';
+   td.title='Rough estimate: straight-line distance × '+mm.circ+' route factor at '
+    +(MODE==='driving'?'a pace that scales with leg length (24 mph local → 55 mph highway)':'~'+mm.mph+' mph average ('+mm.label.toLowerCase()+' profile)')
+    +'. Google Maps gives the real time.';
   }else{td.textContent='';td.title='';}}
  if(startMarker){map.removeLayer(startMarker);startMarker=null;}if(endMarker){map.removeLayer(endMarker);endMarker=null;}
  if(startPt)startMarker=L.marker([startPt.lat,startPt.lng],{icon:pin('#2f6fb0','S')}).addTo(map);
@@ -1078,4 +1100,64 @@ map.on('popupclose',function(){document.body.classList.remove('popupopen');});
 drawRoute(); // set initial route-panel visibility (hidden on mobile when empty)
 
 render(); // run last: needs FAMCOL + mix helpers (above) and attaches after bot handlers
+
+/* ===== Shared trip presets (#trip=...) ==========================================
+   One emailed link opens this map with the day already built: start, the stops in the
+   planner's order, and the end. Multi-day trips ride in the same link -- the banner
+   switches days. Order is preserved AS SENT (that is the point of a planned route);
+   the rep can still hit the ordinary Optimize button to re-order it.
+   Build a link with tools/make_trip_link.py. */
+function b64urlDecode(s){s=String(s).replace(/-/g,'+').replace(/_/g,'/');while(s.length%4)s+='=';
+ var raw=atob(s),out='';for(var i=0;i<raw.length;i++){out+='%'+('00'+raw.charCodeAt(i).toString(16)).slice(-2);}
+ return decodeURIComponent(out);}
+function readTrip(){
+ var m=/[#&?]trip=([A-Za-z0-9_\-=%]+)/.exec(location.hash)||/[&?]trip=([A-Za-z0-9_\-=%]+)/.exec(location.search);
+ if(!m)return null;
+ try{var t=JSON.parse(b64urlDecode(decodeURIComponent(m[1])));return (t&&t.d&&t.d.length)?t:null;}
+ catch(e){return null;}}
+function findStop(id){var s=String(id).trim().toLowerCase();if(!s)return null;
+ return DATA.find(function(x){return (x.lic||'').toLowerCase()===s;})
+     || DATA.find(function(x){return x.n.toLowerCase()===s;})
+     || DATA.find(function(x){return x.n.toLowerCase().indexOf(s)>=0;})||null;}
+function loadTripDay(trip,i){
+ var day=trip.d[i];if(!day)return;
+ route=[];startPt=null;endPt=null;
+ var missing=[];
+ (day.st||[]).forEach(function(id){var d=findStop(id);
+  if(!d){missing.push(id);return;}
+  if(route.indexOf(d)<0)route.push(d);});
+ if(day.s)startPt={lat:day.s[0],lng:day.s[1],label:day.s[2]||'Start'};
+ if(day.e)endPt={lat:day.e[0],lng:day.e[1],label:day.e[2]||'End'};
+ if(day.m&&MODES[day.m]){MODE=day.m;try{localStorage.setItem('jbd_route_mode',MODE);}catch(e){}}
+ document.getElementById('route').classList.remove('min');
+ var rm=document.getElementById('rmin');if(rm)rm.textContent='–';
+ drawRoute(); // NOT optimizeOrder -- keep the planned order
+ var pts=route.map(function(d){return [d.lat,d.lng];});
+ if(startPt)pts.push([startPt.lat,startPt.lng]);
+ if(endPt)pts.push([endPt.lat,endPt.lng]);
+ if(pts.length){try{map.fitBounds(L.latLngBounds(pts).pad(0.18));}catch(e){}}
+ if(window.innerWidth<=760)document.getElementById('side').classList.remove('open');
+ renderTripBar(trip,i,missing);}
+function renderTripBar(trip,active,missing){
+ var bar=document.getElementById('tripbar');if(!bar)return;
+ bar.style.display='block';
+ var day=trip.d[active]||{};
+ document.getElementById('triptitle').textContent=trip.t||'Planned route';
+ document.getElementById('tripsub').textContent=(trip.rep?'for '+trip.rep+' · ':'')
+  +(day.l||'')+(route.length?' · '+route.length+' stops':'');
+ var dd=document.getElementById('tripdays');dd.innerHTML='';
+ trip.d.forEach(function(d,i){var b=document.createElement('button');
+  b.textContent=d.b||d.l||('Day '+(i+1));b.className=(i===active?'on':'');
+  b.onclick=function(){loadTripDay(trip,i);};dd.appendChild(b);});
+ var nt=document.getElementById('tripnote');
+ if(day.note){nt.style.display='block';nt.innerHTML=inl(day.note);}else{nt.style.display='none';}
+ var w=document.getElementById('tripwarn');
+ if(missing&&missing.length){w.style.display='block';
+  w.textContent='⚠️ '+missing.length+' stop'+(missing.length===1?'':'s')+' in this link '
+   +(missing.length===1?'is':'are')+' not on the current map data: '+missing.join(', ');}
+ else{w.style.display='none';}}
+(function(){var trip=readTrip();if(!trip)return;
+ document.getElementById('tripx').onclick=function(){document.getElementById('tripbar').style.display='none';};
+ var i=Math.max(0,Math.min(trip.d.length-1,parseInt(trip.a,10)||0));
+ loadTripDay(trip,i);})();
 </script></body></html>
