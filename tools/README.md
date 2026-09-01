@@ -80,3 +80,17 @@ check that catches them.
 no longer reads them: per-category price tiers plus **measured** brand carriage replaced
 inferred brand fit. The fields remain in DATA and the script still runs, but nothing
 consumes its output.
+
+## Send a rep a preset route (one link)
+
+`#trip=<base64 json>` opens `index.html` with the day already in the route builder —
+start pin, stops **in the order given** (not re-optimized), end pin — plus a banner
+that switches between days of a multi-day trip.
+
+```sh
+python tools/make_trip_link.py trips/john_syracuse.json
+```
+
+Trips live in `trips/*.json`; stops are OCM license numbers, so a door that has dropped
+off the map shows a warning in the banner instead of silently disappearing. See the
+docstring in `make_trip_link.py` for the schema.
