@@ -47,11 +47,13 @@ label.tog{display:inline-flex;align-items:center;gap:5px;font-size:12px;cursor:p
 .pros{display:inline-block;font-size:9px;padding:1px 6px;border-radius:10px;background:#5b3fa0;color:#fff;margin-left:3px;font-weight:700}
 .opb{display:inline-block;font-size:9px;padding:1px 6px;border-radius:10px;margin-left:3px;font-weight:700}
 .opb.open{background:#1f7a44;color:#fff}.opb.warn{background:#e08a1e;color:#fff}
-.addr{position:absolute;top:8px;right:10px;font-size:18px;color:#2f6fb0;cursor:pointer;font-weight:700}
+.addr{position:absolute;top:4px;right:6px;width:34px;height:34px;display:flex;align-items:center;justify-content:center;font-size:20px;color:#2f6fb0;cursor:pointer;font-weight:700;border-radius:9px;touch-action:manipulation}
+.addr:active{background:#e7f0f8}
+.addr.on{color:#1f7a44}
 #main{flex:1;position:relative}#map{position:absolute;inset:0}
 #route{position:absolute;top:10px;right:10px;width:280px;background:#fff;border:1px solid #ccc;border-radius:8px;box-shadow:0 2px 10px rgba(0,0,0,.15);font-size:12px;z-index:1000;max-height:80vh;display:flex;flex-direction:column}
 #route h3{margin:0;padding:8px 12px;background:var(--ink);color:#fff;font-size:12px;border-radius:8px 8px 0 0}
-#rstops{overflow-y:auto;padding:4px 0}.rstop{padding:5px 12px;border-bottom:1px solid #f0f0f0;display:flex;justify-content:space-between}
+#rstops{overflow-y:auto;-webkit-overflow-scrolling:touch;padding:4px 0}.rstop{padding:5px 12px;border-bottom:1px solid #f0f0f0;display:flex;justify-content:space-between}
 .rstop small{color:#999;cursor:pointer}
 #route .act{padding:8px 12px;display:flex;gap:6px}#route a,#route button{flex:1;text-align:center;padding:6px;border-radius:6px;border:1px solid #ccc;background:#fff;text-decoration:none;color:var(--ink);font-size:11px;cursor:pointer}
 #route a{background:var(--ink);color:#fff;border-color:var(--ink)}
@@ -135,6 +137,7 @@ label.tog{display:inline-flex;align-items:center;gap:5px;font-size:12px;cursor:p
 #rstart .sbtns button#optroute{background:var(--ink);color:#fff}
 .rtotal{padding:4px 12px;font-size:11px;color:#1f7a44;font-weight:600}
 #route h3{display:flex;align-items:center;justify-content:space-between;gap:8px}
+#rsum{font-weight:400;opacity:.85;font-size:11px}
 #rmin{display:none;background:rgba(255,255,255,.18);border:none;color:#fff;width:28px;height:28px;border-radius:7px;font-size:20px;line-height:1;cursor:pointer;flex:0 0 auto;align-items:center;justify-content:center;touch-action:manipulation}
 #route .act2{padding-top:0}
 #route .act2 button{font-size:11px}
@@ -191,7 +194,8 @@ label.tog{display:inline-flex;align-items:center;gap:5px;font-size:12px;cursor:p
 #anmodal .abtns{display:flex;gap:8px;margin-top:14px;flex-wrap:wrap}
 #anmodal .abtns button{flex:1;min-width:130px;padding:9px;border-radius:8px;border:1px solid var(--ink);background:#fff;color:var(--ink);font-weight:700;font-size:12px;cursor:pointer}
 #anmodal .abtns button.pri{background:var(--ink);color:#fff}
-.card .ana{position:absolute;top:8px;right:34px;font-size:13px;color:#8a958c;cursor:pointer;font-weight:700}
+.card .ana{position:absolute;top:4px;right:44px;width:34px;height:34px;display:flex;align-items:center;justify-content:center;font-size:15px;color:#8a958c;cursor:pointer;font-weight:700;border-radius:9px;touch-action:manipulation}
+.card .ana:active{background:#eef0ee}
 /* carriage + category/tier/quality badges */
 .carr{display:inline-block;font-size:9px;padding:1px 6px;border-radius:10px;margin-left:3px;font-weight:700;color:#fff}
 .carr.yes{background:#1f7a44}.carr.no{background:#8a6d1f}
@@ -229,7 +233,13 @@ label.tog{display:inline-flex;align-items:center;gap:5px;font-size:12px;cursor:p
 #tripbar .td button.on{background:#c9a24b;color:#14241a;border-color:#c9a24b}
 #tripbar .tn{padding:0 13px 10px;color:#c8d5cb;font-size:11px;line-height:1.5;border-top:1px solid #24392c;margin-top:2px;padding-top:8px}
 #tripbar .tw{padding:0 13px 10px;color:#ffbf8a;font-size:11px}
-@media(max-width:760px){#tripbar{top:auto;bottom:calc(74px + env(safe-area-inset-bottom,0px));max-width:94vw}
+@media(max-width:760px){#tripbar{top:auto;bottom:calc(128px + env(safe-area-inset-bottom,0px));left:8px;right:8px;transform:none;max-width:none}
+ /* The day note is a paragraph of context the rep reads once. On a phone it cost 85px
+    of map to keep saying it, so it hides behind a tap on the bar. */
+ #tripbar .tn{display:none!important}
+ #tripbar .tn.open{display:block!important}
+ #tripbar .th{cursor:pointer}
+ #tripbar .th{padding:7px 9px 7px 11px}#tripbar .td{padding:0 9px 8px 11px}
  body.popupopen #tripbar{display:none!important}}
 /* mobile controls (hidden on desktop) */
 #sheetclose{display:none;position:absolute;top:9px;right:10px;background:rgba(255,255,255,.18);border:none;color:#fff;width:36px;height:36px;border-radius:8px;font-size:24px;line-height:1;cursor:pointer;align-items:center;justify-content:center;z-index:5;touch-action:manipulation}
@@ -247,18 +257,27 @@ label.tog{display:inline-flex;align-items:center;gap:5px;font-size:12px;cursor:p
   #filters{max-height:42vh}
   #filters input{font-size:16px}
   .chip{padding:6px 12px;font-size:13px}
-  .card{padding:12px 14px}
+  /* 44px is the floor for a touch target; below it a miss is the normal outcome. */
+  .card{padding:12px 96px 12px 14px}
+  .addr{width:44px;height:44px;top:6px;right:6px;font-size:26px;border:1px solid #d6e2ee;background:#f4f9fd}
+  .card .ana{width:44px;height:44px;top:6px;right:56px;font-size:18px;border:1px solid #e4e7e4;background:#f7f8f7}
   #sheetclose{display:flex}
   #mobtoggle{display:inline-flex;left:50%;transform:translateX(-50%);bottom:calc(20px + env(safe-area-inset-bottom,0px))}
   #leg{display:none}
-  #route{left:8px;right:8px;width:auto;top:8px;max-height:40vh}
+  #route{left:8px;right:8px;width:auto;top:8px;max-height:52vh}
+  #route #rstops{max-height:30vh}
+  #route h3{padding:11px 12px;cursor:pointer}
+  #rmin{width:36px;height:36px}
   #rmin{display:flex}
   /* minimized: collapse to a small pill in the corner so it never blocks the map */
-  #route.min{left:auto;right:8px;width:auto;max-width:62vw;max-height:none}
+  #route.min{left:auto;right:8px;width:auto;max-width:74vw;max-height:none}
   #route.min #rstart,#route.min #rstops,#route.min #rtotal,#route.min .act,#route.min .act2{display:none!important}
   #route.min h3{border-radius:8px}
-  #mapact{bottom:calc(74px + env(safe-area-inset-bottom,0px));left:8px;right:8px;transform:none;flex-direction:column;gap:7px;z-index:1500}
-  #planbtn,#botbtn{width:100%;padding:13px 16px;min-width:0;justify-content:center}
+  #mapact{bottom:calc(72px + env(safe-area-inset-bottom,0px));left:8px;right:8px;transform:none;flex-direction:row;gap:7px;z-index:1500}
+  #planbtn{padding:12px 14px;font-size:13px;flex:0 0 auto}
+  #botbtn{flex:1 1 auto;min-width:0;padding:12px 14px;justify-content:flex-start;overflow:hidden}
+  #botbtn .ph{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  #botbtn .kbd{display:none}
   body.popupopen #mobtoggle,body.popupopen #mapact{display:none}
   #bot{position:fixed;inset:0;left:0;right:0;top:0;bottom:0;width:100%;height:100vh;height:100dvh;max-width:none;max-height:none;border-radius:0;z-index:1700}
   #botmsgs{overscroll-behavior:contain;-webkit-overflow-scrolling:touch}
@@ -407,7 +426,7 @@ window.PROFILE=null;
 <div id="stats"></div><div id="list"></div></div>
 <div id="main"><div id="map"></div>
 <button id="mobtoggle">☰ <span id="mobcount">Stores &amp; filters</span></button>
-<div id="route"><h3><span>Route builder (<span id="rcount">0</span>)</span><button id="rmin" aria-label="Minimize route panel" title="Minimize">–</button></h3>
+<div id="route"><h3><span>Route (<span id="rcount">0</span>)<span id="rsum"></span></span><button id="rmin" aria-label="Minimize route panel" title="Minimize">–</button></h3>
 <div id="rstart"><div class="slbl">📍 Start: <b id="startlabel">not set</b></div>
  <div class="sbtns"><button id="useloc">📍 My location</button><button id="setaddr">✏️ Address</button></div>
  <div class="slbl" style="margin-top:7px">🏁 End: <b id="endlabel">not set</b></div>
@@ -873,7 +892,12 @@ function render(){cluster.clearLayers();markers={};var vis=visible();var listEl=
    var mk=markers[d.lic||d.n];
    if(mk&&cluster.zoomToShowLayer){cluster.zoomToShowLayer(mk,function(){mk.openPopup();});}
    else{map.setView([d.lat,d.lng],14);if(mk)mk.openPopup();}};
-  card.querySelector('.addr').onclick=function(e){e.stopPropagation();addRoute(d.lic||d.n,d);};
+  card.querySelector('.addr').onclick=function(e){e.stopPropagation();
+   var t=e.currentTarget;addRoute(d.lic||d.n,d);
+   // Acknowledge the tap. The panel is usually collapsed on a phone, so without this
+   // a successful add looks exactly like a control that did nothing.
+   t.textContent='\u2713';t.classList.add('on');
+   setTimeout(function(){t.textContent='\uff0b';t.classList.remove('on');},1100);};
   card.querySelector('.ana').onclick=function(e){e.stopPropagation();showAnalysis(d.lic||d.n);};listEl.appendChild(card);});}
 window.addRoute=function(id,d){d=d||DATA.find(x=>(x.lic||x.n)==id);if(!d)return;if(route.find(r=>(r.lic||r.n)==id))return;route.push(d);
  if(startPt)optimizeOrder();else drawRoute();}; // auto-order by proximity from start
@@ -977,6 +1001,7 @@ function drawRoute(){var rs=document.getElementById('rstops');rs.innerHTML='';do
    :'Ask the bot to build or change your route\u2026';
  document.getElementById('route').style.display=(route.length||window.innerWidth>760)?'flex':'none';
  var sc=document.getElementById('rstart');if(sc)sc.style.display=route.length>=2?'block':'none';
+ if(window.innerWidth<=760&&route.length&&routeAutoMin)setRouteMin(true);
  var sl=document.getElementById('startlabel');if(sl)sl.textContent=startPt?startPt.label:'not set — uses first stop';
  var el=document.getElementById('endlabel');if(el)el.textContent=endPt?endPt.label:'not set (open-ended)';
  var sched=schedule();
@@ -987,6 +1012,9 @@ function drawRoute(){var rs=document.getElementById('rstops');rs.innerHTML='';do
  var td=document.getElementById('rtotal');
  renderModes();renderNote();renderLegs();renderCod();
  var mm=MODES[MODE];
+ var rs2=document.getElementById('rsum');
+ if(rs2){var es2=route.length>=2?routeEstimate():null,sc2=schedule();
+  rs2.textContent=es2?(' \u00b7 '+es2.miles.toFixed(0)+' mi'+(sc2?' \u00b7 done '+fmtClock(sc2.finish):'')):'';}
  if(td){if(route.length>=2){var es=routeEstimate();
    td.textContent='≈ '+es.miles.toFixed(1)+' mi · '+fmtMins(es.mins)+' '+mm.icon+(startPt?' from start':' (set a start)')+(endPt?' → end':'');
    if(sched)td.textContent+=' · done '+fmtClock(sched.finish)
@@ -1107,7 +1135,20 @@ document.getElementById('rexport').onclick=exportHubspot;
 document.getElementById('rhist').onclick=showHistory;
 document.getElementById('rhistx').onclick=function(){document.getElementById('rhistmodal').style.display='none';};
 document.getElementById('rhistmodal').addEventListener('click',function(e){if(e.target===this)this.style.display='none';});
-document.getElementById('rmin').onclick=function(){var r=document.getElementById('route');var m=r.classList.toggle('min');this.textContent=m?'+':'–';this.title=m?'Expand':'Minimize';};
+/* On a phone the route panel opens collapsed and stays that way until the rep opens
+   it: two stops was enough to bury the map underneath it. Once they open it by hand we
+   stop deciding for them. */
+var routeAutoMin=true;
+function setRouteMin(m){
+ var r=document.getElementById('route'),b=document.getElementById('rmin');
+ r.classList.toggle('min',m);b.textContent=m?'+':'–';b.title=m?'Expand':'Minimize';
+ routeAutoMin=m;}
+document.getElementById('rmin').onclick=function(e){e.stopPropagation();
+ setRouteMin(!document.getElementById('route').classList.contains('min'));};
+// The whole header is the hit area when collapsed -- a 36px button is a small thing to
+// find one-handed in a car.
+document.querySelector('#route h3').onclick=function(){
+ if(document.getElementById('route').classList.contains('min'))setRouteMin(false);};
 document.getElementById('rclear').onclick=function(){route=[];startPt=null;endPt=null;document.getElementById('route').classList.remove('min');var rm=document.getElementById('rmin');if(rm)rm.textContent='–';drawRoute();};
 document.getElementById('useloc').onclick=useMyLocation;
 document.getElementById('setaddr').onclick=setStartByAddress;
@@ -1444,7 +1485,11 @@ function renderTripBar(trip,active,missing){
   b.textContent=d.b||d.l||('Day '+(i+1));b.className=(i===active?'on':'');
   b.onclick=function(){loadTripDay(trip,i);};dd.appendChild(b);});
  var nt=document.getElementById('tripnote');
- if(day.note){nt.style.display='block';nt.innerHTML=inl(day.note);}else{nt.style.display='none';}
+ if(day.note){nt.style.display='block';nt.innerHTML=inl(day.note);nt.classList.remove('open');
+  // Desktop shows the note outright; on a phone tapping the bar reveals it.
+  document.querySelector('#tripbar .th').onclick=function(e){
+   if(e.target.id==='tripx')return;nt.classList.toggle('open');};}
+ else{nt.style.display='none';}
  var w=document.getElementById('tripwarn');
  if(missing&&missing.length){w.style.display='block';
   w.textContent='⚠️ '+missing.length+' stop'+(missing.length===1?'':'s')+' in this link '
