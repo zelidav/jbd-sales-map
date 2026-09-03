@@ -241,6 +241,21 @@ label.tog{display:inline-flex;align-items:center;gap:5px;font-size:12px;cursor:p
  #tripbar .th{cursor:pointer}
  #tripbar .th{padding:7px 9px 7px 11px}#tripbar .td{padding:0 9px 8px 11px}
  body.popupopen #tripbar{display:none!important}}
+#ftoggle{display:none}
+@media(max-width:760px){
+  /* The filter stack filled the sheet: opening it showed three store cards. Search
+     stays put, everything else folds away behind a count of what is actually on. */
+  #ftoggle{display:flex;align-items:center;gap:7px;width:100%;margin-top:8px;padding:11px 12px;
+    border:1px solid #d2d8d2;border-radius:9px;background:#f7f9f7;font:inherit;font-size:14px;
+    font-weight:700;color:#2c4235;cursor:pointer}
+  #fcount{flex:1;text-align:left;font-weight:400;color:#7a857c;font-size:12px}
+  #fchev{transition:transform .15s}
+  #filterbody{display:none}
+  #side.fopen #filterbody{display:block}
+  #side.fopen #fchev{transform:rotate(180deg)}
+  #filters{max-height:none}
+  #side.fopen #filters{max-height:62vh;overflow-y:auto;-webkit-overflow-scrolling:touch}
+}
 /* mobile controls (hidden on desktop) */
 #sheetclose{display:none;position:absolute;top:9px;right:10px;background:rgba(255,255,255,.18);border:none;color:#fff;width:36px;height:36px;border-radius:8px;font-size:24px;line-height:1;cursor:pointer;align-items:center;justify-content:center;z-index:5;touch-action:manipulation}
 #mobtoggle{display:none;position:absolute;z-index:1500;background:var(--ink);color:#fff;border:none;border-radius:26px;padding:13px 20px;font-size:14px;font-weight:700;box-shadow:0 4px 16px rgba(0,0,0,.4);align-items:center;gap:8px;cursor:pointer;touch-action:manipulation}
@@ -380,6 +395,8 @@ window.PROFILE=null;
 <div id="brand"><h1>Retail Intel NY</h1><div class="sub">Every NY dispensary — by category, price tier &amp; who stocks what</div><button id="sheetclose" aria-label="Close panel">×</button></div>
 <div id="filters">
 <input id="q" placeholder="Search name / city / neighborhood..."/>
+<button id="ftoggle" type="button">Filters <span id="fcount"></span><span id="fchev">▾</span></button>
+<div id="filterbody">
 <div class="frow"><b>Top stores for a brand</b>
  <select id="sellbrand" style="width:100%;padding:6px 8px;border:1px solid #ccc;border-radius:6px;font-size:12px;background:#fff"></select>
  <div id="carrierow" style="margin-top:5px;display:none">
@@ -422,6 +439,7 @@ window.PROFILE=null;
  <div style="margin-top:6px;display:flex;gap:5px">
   <button id="targets" style="flex:1;padding:7px;border:1px solid #1f7a44;background:#1f7a44;color:#fff;border-radius:6px;font-weight:700;cursor:pointer;font-size:12px">🎯 Rank targets in view</button>
   <button id="rankboard" style="flex:1;padding:7px;border:1px solid var(--gold);background:#fffdf5;color:#8a6d1f;border-radius:6px;font-weight:700;cursor:pointer;font-size:12px">🏆 Leaderboard</button></div></div>
+</div>
 </div>
 <div id="stats"></div><div id="list"></div></div>
 <div id="main"><div id="map"></div>
@@ -756,6 +774,21 @@ optChips(document.getElementById('qualChips'),QUALS,activeQual,function(x){retur
    Array.prototype.forEach.call(document.querySelectorAll('.cchip'),function(o){var on=o===c;o.classList.toggle('on',on);o.style.background=on?'#14241a':'#fff';o.style.color=on?'#fff':'#333';});
    render();};});
 })();
+(function(){var t=document.getElementById('ftoggle');if(!t)return;
+ t.onclick=function(){document.getElementById('side').classList.toggle('fopen');};})();
+/* A collapsed filter must never be an invisible one -- the toggle carries a count of
+   what is currently narrowing the list. */
+function activeFilterCount(){var n=0;
+ n+=activeCats.size+activeTiers.size+activeQual.size;
+ if(activeRoles.size&&activeRoles.size<ROLES.length)n++;
+ if(activeRegions.size&&activeRegions.size<REGIONS.length)n++;
+ if(minCatVol>0)n++;if(topOnly)n++;if(rosinOnly)n++;if(rankOn)n++;
+ if(accelOnly)n++;if(prosOnly)n++;if(codFilter)n++;if(sellBrand)n++;
+ return n;}
+function paintFilterCount(){var el=document.getElementById('fcount');if(!el)return;
+ var n=activeFilterCount();
+ el.textContent=n?(n+' active'):'none active';
+ el.style.color=n?'#1f7a44':'#7a857c';}
 document.getElementById('q').oninput=function(e){q=e.target.value.toLowerCase();render();};
 document.getElementById('topdec').onchange=function(e){topOnly=e.target.checked;render();};
 document.getElementById('mincatvol').oninput=function(e){minCatVol=+e.target.value||0;render();};
@@ -875,6 +908,7 @@ function render(){cluster.clearLayers();markers={};var vis=visible();var listEl=
  var byRole={};vis.forEach(function(d){byRole[d.role]=(byRole[d.role]||0)+1;});
  document.getElementById('stats').innerHTML='<b>'+vis.length+'</b> doors · '+ROLES.filter(r=>byRole[r]).map(r=>'<span style="color:'+COLORS[r]+'">●</span>'+byRole[r]).join(' ');
  document.getElementById('mobcount').textContent=vis.length+' stores';
+ paintFilterCount();
  if(rankSort||rankOn)vis.sort(function(a,b){return (a.psr||9999)-(b.psr||9999);});
  // A category filter is a statement about what you sell -- rank by money in THAT
  // category. Sorting by overall store rank buried the best flower door behind doors
