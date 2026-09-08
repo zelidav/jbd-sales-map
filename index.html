@@ -479,7 +479,7 @@ window.PROFILE=null;
   <button id="upsales" style="flex:1;padding:7px;border:1px solid #1f7a44;background:#1f7a44;color:#fff;border-radius:6px;font-weight:700;cursor:pointer;font-size:11.5px">📈 Upload sales</button>
   <button id="adduser" style="flex:1;padding:7px;border:1px solid #ccc;background:#fff;border-radius:6px;font-weight:700;cursor:pointer;font-size:11.5px">👥 Add people</button></div>
  <div style="margin-top:5px"><button id="editbrands" style="width:100%;padding:6px;border:1px solid #ccc;background:#fff;border-radius:6px;cursor:pointer;font-size:11px">🏷️ Brands we sell</button></div>
- <input id="salesfile" type="file" accept=".csv,.tsv,.txt" style="display:none"/>
+ <input id="salesfile" type="file" accept=".csv,.tsv,.txt,.xlsx,.xls" style="display:none"/>
  <div id="teamlist" style="margin-top:6px"></div></div>
 <div class="frow" id="savedrow"><b>Saved <span style="font-weight:400;color:#888" id="whoami"></span></b>
  <div style="display:flex;gap:5px;margin-top:5px">
@@ -1786,20 +1786,31 @@ function adminPost(path,body){var p=window.PROFILE;
   var file=f.files&&f.files[0];if(!file)return;
   var st=document.getElementById('salesstate');
   st.innerHTML='Reading <b>'+esc(file.name)+'</b>\u2026';
+  // A workbook is bytes, not text. Reading one as text yields mojibake, which reads
+  // as a corrupt file rather than as the wrong read mode.
+  var book=/\.xlsx?$/i.test(file.name);
   var fr=new FileReader();
   fr.onload=function(){
    st.innerHTML='Matching your stores to dispensaries\u2026 <span style="color:#888">this takes a few seconds</span>';
-   adminPost('/org/sales',{filename:file.name,csv:String(fr.result)})
+   var payload={filename:file.name};
+   if(book){
+    var bytes=new Uint8Array(fr.result),bin='';
+    // Chunked: String.fromCharCode.apply blows the stack on a whole megabyte at once.
+    for(var i=0;i<bytes.length;i+=0x8000)bin+=String.fromCharCode.apply(null,bytes.subarray(i,i+0x8000));
+    payload.xlsx=btoa(bin);
+   } else payload.csv=String(fr.result);
+   adminPost('/org/sales',payload)
     .then(function(j){
       applyOrgSales(j);
       if(window.PROFILE)window.PROFILE.sales=j;
-      var msg='Matched '+j.matched+' of your accounts from '+j.rows.toLocaleString()+' rows.';
+      var msg='Matched '+j.matched+' of your accounts from '+j.rows.toLocaleString()+' rows'
+        +(j.sheet?' on the \u201c'+j.sheet+'\u201d sheet':'')+'.';
       if(j.unmatched&&j.unmatched.length)msg+='\n\nCould not place '+j.unmatched.length+' store name'
         +(j.unmatched.length===1?'':'s')+':\n'+j.unmatched.slice(0,10).join('\n');
       alert(msg);})
     .catch(function(e){st.innerHTML='<span style="color:#b00">'+esc(e.message)+'</span>';});};
   fr.onerror=function(){st.innerHTML='<span style="color:#b00">Could not read that file.</span>';};
-  fr.readAsText(file);
+  if(book)fr.readAsArrayBuffer(file);else fr.readAsText(file);
   f.value='';};
 
  var eb=document.getElementById('editbrands');

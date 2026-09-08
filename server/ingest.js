@@ -13,6 +13,7 @@
  * list to choose from, and it must return a licence from that list or null.
  */
 import Anthropic from '@anthropic-ai/sdk';
+import ExcelJS from 'exceljs';
 
 const MODEL = process.env.INGEST_MODEL || 'claude-opus-5';
 const MAX_ROWS = 200000;
@@ -65,6 +66,43 @@ export function parseDelimited(text) {
   }
   const header = rows[head].map((h) => String(h).trim());
   return { header, rows: rows.slice(head + 1).filter((r) => r.some((x) => String(x).trim())), delimiter: D, headerRow: head };
+}
+
+/* ---------- spreadsheets ------------------------------------------------- */
+
+/** A workbook is the native shape of most exports; asking an admin to "save as CSV"
+ *  first is the kind of step that stops people uploading at all. Multi-sheet books are
+ *  normal (Distru ships Orders / Line Items / Invoices / About), and the line-item
+ *  sheet is both the widest and the longest, so the busiest sheet is the right one. */
+export async function parseWorkbook(buf) {
+  const wb = new ExcelJS.Workbook();
+  await wb.xlsx.load(buf);
+  let best = null;
+  wb.eachSheet((ws) => {
+    const score = ws.rowCount * Math.max(1, ws.columnCount);
+    if (ws.rowCount > 1 && (!best || score > best.score)) best = { ws, score };
+  });
+  if (!best) throw Object.assign(new Error('that workbook has no data in it'), { status: 400 });
+  const rows = [];
+  best.ws.eachRow({ includeEmpty: false }, (row) => {
+    const vals = [];
+    row.eachCell({ includeEmpty: true }, (cell) => {
+      let v = cell.value;
+      if (v && typeof v === 'object') {
+        // Dates, formulas, hyperlinks and rich text all arrive as objects.
+        if (v instanceof Date) v = v.toISOString().slice(0, 10);
+        else if (v.result !== undefined) v = v.result;
+        else if (v.text !== undefined) v = v.text;
+        else if (Array.isArray(v.richText)) v = v.richText.map((t) => t.text).join('');
+        else if (v.hyperlink !== undefined) v = v.text || v.hyperlink;
+        else v = '';
+      }
+      vals.push(v == null ? '' : String(v));
+    });
+    if (vals.some((x) => x.trim())) rows.push(vals);
+  });
+  if (rows.length < 2) throw Object.assign(new Error('that sheet has no rows under its header'), { status: 400 });
+  return { rows, sheet: best.ws.name };
 }
 
 const num = (v) => {
@@ -276,9 +314,30 @@ export function aggregate(header, rows, cols, licFor) {
   };
 }
 
-/** Full pipeline: text in, per-door figures out. */
-export async function ingest(text, doors) {
-  const { header, rows } = parseDelimited(text);
+/** Full pipeline: a delimited file or a workbook in, per-door figures out. */
+export async function ingest(input, doors) {
+  let header, rows, sheet = null;
+  if (input && input.workbook) {
+    const wb = await parseWorkbook(input.workbook);
+    sheet = wb.sheet;
+    // Same preamble problem as CSV -- run the rows back through the sniffer.
+    const asRows = wb.rows;
+    const width = (r) => r.filter((x) => String(x).trim()).length;
+    let head = 0;
+    for (let i = 0; i < Math.min(asRows.length - 1, 15); i++) {
+      if (width(asRows[i]) < 3) continue;
+      const n = asRows[i].length;
+      let agree = 0;
+      for (let k = i + 1; k < Math.min(asRows.length, i + 4); k++) {
+        if (width(asRows[k]) && asRows[k].length === n) agree++;
+      }
+      if (agree >= 2 || (agree >= 1 && asRows.length - i <= 3)) { head = i; break; }
+    }
+    header = asRows[head].map((h) => String(h).trim());
+    rows = asRows.slice(head + 1);
+  } else {
+    ({ header, rows } = parseDelimited(typeof input === 'string' ? input : input.text));
+  }
   const cols = await mapColumns(header, rows);
   if (!cols.store && !cols.license) {
     throw Object.assign(new Error('I could not find a store or licence column in that file — is it a sales export?'), { status: 400 });
@@ -326,6 +385,7 @@ export async function ingest(text, doors) {
 
   return {
     columns: cols,
+    sheet,
     rows: rows.length,
     matched: Object.keys(agg.accounts).length,
     unmatched: unmatchedNames.slice(0, 60),

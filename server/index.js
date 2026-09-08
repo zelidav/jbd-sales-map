@@ -632,18 +632,21 @@ app.post('/org/sales', async (req, res) => {
     // every rep in the company sees, so a member must not be able to start it and only
     // be refused at the save.
     await orgs.requireAdmin(creds(b));
-    if (typeof b.csv !== 'string' || !b.csv.trim()) {
-      return res.status(400).json({ error: 'send the file contents as text in "csv"' });
+    // Text for CSV/TSV, base64 for a workbook. Most exports are workbooks, and telling
+    // an admin to re-save as CSV first is the step that stops them uploading at all.
+    const isBook = typeof b.xlsx === 'string' && b.xlsx.length > 0;
+    if (!isBook && (typeof b.csv !== 'string' || !b.csv.trim())) {
+      return res.status(400).json({ error: 'send the file as text in "csv" or base64 in "xlsx"' });
     }
-    if (b.csv.length > 12e6) {
-      return res.status(413).json({ error: 'that file is over 12MB — export a narrower date range' });
+    if ((isBook ? b.xlsx.length : b.csv.length) > 16e6) {
+      return res.status(413).json({ error: 'that file is too big — export a narrower date range' });
     }
     const doors = ACCOUNTS.map((d) => ({ n: d.n, c: d.c, lic: d.lic }));
-    const out = await ingest(b.csv, doors);
+    const out = await ingest(isBook ? { workbook: Buffer.from(b.xlsx, 'base64') } : b.csv, doors);
     const saved = await orgs.putSales(creds(b), { ...out, filename: String(b.filename || '').slice(0, 200) });
     res.json({
       ok: true, filename: saved.filename, uploadedAt: saved.uploadedAt,
-      rows: out.rows, matched: out.matched, unmatchedRows: out.unmatchedRows,
+      rows: out.rows, matched: out.matched, unmatchedRows: out.unmatchedRows, sheet: out.sheet,
       unmatched: out.unmatched, columns: out.columns, overall: out.overall,
       accounts: out.accounts,
     });
