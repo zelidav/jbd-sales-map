@@ -39,7 +39,7 @@ function catStr(d) {
     .join('; ');
 }
 // Which tracked brands this door stocks, with each brand's dollars there. This is
-// measured carriage from brand-filtered Pistil pulls, not inference — it stays in
+// measured carriage from brand-filtered market pulls, not inference — it stays in
 // the CACHED table so the bot can answer carriage questions for any brand without
 // the prompt changing per request.
 function brandsStr(d) {
@@ -51,7 +51,7 @@ function brandsStr(d) {
 }
 
 function accountTable() {
-  const head = 'name | role | off_map_prospect | customer_quality | quality_score | top_categories (cat:$/tier/avg_price) | brands_stocked | pistil_decile | store_rank | sales_window_usd | sales_30d_usd | momentum_30v90_pct | momentum_vs_market_pct | cod_only_list | days_since_order | hist_rev_usd | city | neighborhood | county | region | rep | poc | phone | license | lat | lng';
+  const head = 'name | role | off_map_prospect | customer_quality | quality_score | top_categories (cat:$/tier/avg_price) | brands_stocked | market_decile | store_rank | sales_window_usd | sales_30d_usd | momentum_30v90_pct | momentum_vs_market_pct | cod_only_list | days_since_order | hist_rev_usd | city | neighborhood | county | region | rep | poc | phone | license | lat | lng';
   const lines = ACCOUNTS.map((d) => [
     d.n, d.role, d.prospect ? 'yes' : '',
     num(d.qt), num(d.qs), catStr(d), brandsStr(d),
@@ -64,7 +64,7 @@ function accountTable() {
 }
 const TABLE = accountTable();
 
-// ----- What each brand actually sells (Pistil product rank, by brand x category) -----
+// ----- What each brand actually sells (product rank, by brand x category) -----
 let PROFILES = null;
 try { PROFILES = JSON.parse(readFileSync(new URL('./brand_profiles.json', import.meta.url))); }
 catch { console.warn('brand_profiles.json not found — brand product profiles disabled'); }
@@ -146,14 +146,14 @@ function routeContext(r) {
   return s;
 }
 
-// ----- Statewide brand-rank intelligence (Pistil brand exports) -----
+// ----- Statewide brand-rank intelligence (brand-rank exports) -----
 let BRAND = null;
 try { BRAND = JSON.parse(readFileSync(new URL('./brand_intel.json', import.meta.url))); }
 catch { console.warn('brand_intel.json not found — brand intelligence disabled'); }
 
 function brandText() {
   if (!BRAND) return '';
-  let s = 'STATEWIDE BRAND LANDSCAPE (Pistil brand rank — every NY licensed brand, whoever the rep sells).\n';
+  let s = 'STATEWIDE BRAND LANDSCAPE (brand rank — every NY licensed brand, whoever the rep sells).\n';
   if (BRAND.top_brands_flower_preroll?.length) {
     s += 'Leading flower/preroll brands (volume, avg price, % of stores stocking): ' +
       BRAND.top_brands_flower_preroll.slice(0, 12).map((b) => `${b.brand} ($${b.vol.toLocaleString()}, $${b.price}, ${b.dist_pct}%)`).join('; ') + '.\n';
@@ -179,7 +179,7 @@ function ordersText() {
   if (!ORDERS) return '';
   const o = ORDERS.overall;
   let s = `OUR OWN WHOLESALE ORDER HISTORY — actual orders we shipped, ${ORDERS.date_range[0]} to ${ORDERS.date_range[1]}.\n`;
-  s += `This is first-party order data for the rep's own company, NOT market-wide Pistil data — it covers only accounts we sell to. `;
+  s += `This is first-party order data for the rep's own company, NOT the market-wide baseline — it covers only accounts we sell to. `;
   s += `Use it for reorder cadence, product-mix and change-over-time questions, and to spot accounts going quiet. `;
   s += `Dollars are wholesale line-item subtotals; cancelled/rejected orders excluded. Match accounts by license.\n\n`;
   s += `OVERALL: $${o.rev.toLocaleString()} across ${o.orders} orders.\n`;
@@ -206,19 +206,19 @@ You have the full live account list below (the same data shown on the field map)
 
 FIELD MEANINGS
 - role: the account's status in the rep's own pipeline (an "Active"/"Slipping"/"Lapsed" account is one that orders, or used to order, from the rep's own company; "New Prospect" is a licensed dispensary not yet sold to). Treat these as relationship status, not as a brand judgement.
-- off_map_prospect = "yes": a high-performing store the rep does NOT currently serve, surfaced from the Pistil sales rank. Prime targets — cite rank, sales and momentum, and pursue the accelerating ones first.
+- off_map_prospect = "yes": a high-performing store the rep does NOT currently serve, surfaced from the store rank. Prime targets — cite rank, sales and momentum, and pursue the accelerating ones first.
 - customer_quality (H/M/L) + quality_score (0-100): how good a customer this door is overall — 50% sales volume, 30% average price, 20% momentum, ranked against every other NY door. H = a door worth winning.
 - top_categories: what the door actually sells, biggest first, as "category:$volume/price_tier/avg_price". The price tier (Value / Mid / Prem) is where THIS door sits on price within THAT category across NY. A door that is Prem on flower sells expensive flower; it says nothing about its edibles.
 - brands_stocked: which tracked brands the door already stocks and how much of each it sold last full month. MEASURED, not inferred. If the rep's brand is absent from a door's list, that door is whitespace for them.
-- pistil_decile: market-quality decile, 1 = best, 10 = weakest. Lower is better.
-- store_rank: statewide Pistil performance rank (1 = best-performing store in NY). sales_window_usd / sales_30d_usd are estimated sell-through.
+- market_decile: market-quality decile, 1 = best, 10 = weakest. Lower is better.
+- store_rank: statewide performance rank (1 = best-performing store in NY). sales_window_usd / sales_30d_usd are estimated sell-through.
 - momentum_vs_market_pct (MOST ACTIONABLE): the store's momentum minus the market median. The whole NY market grows, so judge relative: positive = accelerating faster than the typical store (push, secure shelf space); negative = cooling relative to the market (defend, investigate).
 - cod_only_list ("2x", "3x"): NY OCM publishes a list of retail licensees that other licensees may sell to on a CASH-ON-DELIVERY basis only — no credit terms. The number is how many of the last 3 published editions the door appeared on. This is a terms-and-collections fact, NOT a reason to skip the door: plenty of high-volume stores are on it. Say it plainly whenever you recommend a COD door ("sell it COD, no terms"), and treat 3x — on every edition — as a real AR risk worth raising with the rep before they extend anything. A door with no value here simply was not on the published list.
 - days_since_order / hist_rev_usd: recency and historical revenue with the rep's own company.
   NEVER state, imply or estimate a relationship or a revenue figure that is not literally in
   the row. A BLANK hist_rev_usd means the door has NEVER ordered from us -- it is not an
   unknown to be filled in, and a "New Prospect"/"Priority T1-T3" role means exactly that, no
-  matter how big the door is in Pistil terms. Getting this wrong sends a rep into a prospect
+  matter how big the door is in market terms. Getting this wrong sends a rep into a prospect
   talking like it is an established account. If you are about to describe how a door buys
   from us, re-read its role and hist_rev_usd first and quote them as they are.
 - region/county/city/neighborhood: geography for routing.
@@ -569,7 +569,7 @@ async function logVisitsToHubspot(rec) {
     const note = await hs('/crm/v3/objects/notes', 'POST', {
       properties: {
         hs_timestamp: rec.ts,
-        hs_note_body: `Field sales visit${rec.rep ? ' by ' + rec.rep : ''} on ${rec.date} (route stop #${v.order}). Logged from the Dragonfly × JB field map.`,
+        hs_note_body: `Field sales visit${rec.rep ? ' by ' + rec.rep : ''} on ${rec.date} (route stop #${v.order}). Logged from the field map.`,
       },
     });
     await hs(`/crm/v3/objects/notes/${note.id}/associations/companies/${company.id}/note_to_company`, 'PUT');

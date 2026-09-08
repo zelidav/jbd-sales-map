@@ -1,7 +1,7 @@
 # jbd-sales-map — maintenance
 
 `index.html` is the **source of truth**. It contains the map, the data (`var DATA`),
-the product-mix (`var MIX`), the rosin target list (`var ROSIN50`), the Claude sales
+the product-mix (`var MIX`), the Claude sales
 bot, mobile layout, and route optimizer.
 
 ## ⚠️ Do NOT copy a fresh export over index.html
@@ -15,7 +15,7 @@ python tools/refresh_from_export.py "~/Downloads/Finance Docs/Dragonfly_JB_Field
 git add -A && git commit -m "Refresh map data" && git push
 ```
 This swaps `var DATA`, then re-runs `sync_accounts.py`, `build_orders.py`, and
-`build_rosin.py` so the bot, product-mix, and rosin list stay in sync. App code is
+so the bot and product-mix stay in sync. App code is
 preserved.
 
 ## Refresh order / product-mix data (new sales export)
@@ -23,7 +23,6 @@ Drop the new line-item CSV at `data/dragonfly_orders.csv` (gitignored — contai
 then:
 ```sh
 python tools/build_orders.py   # rebuilds server/orders_summary.json + MIX in index.html
-python tools/build_rosin.py    # rebuilds the top-50 rosin target list
 ```
 
 ## Redeploy the bot (server change or data refresh)
@@ -71,7 +70,6 @@ check that catches them.
 - `refresh_from_export.py` — swap DATA from an export without clobbering the app
 - `sync_accounts.py` — DATA → server/accounts.json (bot dataset)
 - `build_orders.py` — order CSV → server/orders_summary.json + `var MIX`
-- `build_rosin.py` — score + inject `var ROSIN50` (top-50 live-rosin targets)
 - `build_store_rank.py` — Pistil rank + momentum from three measured windows
 - `build_category_fit.py` — per-category price tier + customer-quality tier (`cat`, `qt`, `qs`)
 - `build_brand_carriage.py` — per-door brand carriage from brand-filtered pulls (`br`, `var BRANDS`)

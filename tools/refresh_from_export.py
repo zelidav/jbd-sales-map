@@ -61,7 +61,7 @@ n_new = len(re.findall(r"\{", new_data))
 print(f"Swapped DATA in index.html (~{n_old} -> ~{n_new} records). App code preserved.")
 
 # Re-run the data builders so accounts.json / MIX / rosin stay in sync.
-for tool in ("sync_accounts.py", "build_orders.py", "build_rosin.py"):
+for tool in ("sync_accounts.py", "build_orders.py"):
     p = os.path.join(ROOT, "tools", tool)
     print(f"\n--- {tool} ---")
     r = subprocess.run([sys.executable, p], cwd=os.path.join(ROOT, "tools"))
