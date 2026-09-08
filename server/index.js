@@ -1,6 +1,8 @@
 import express from 'express';
 import { readFileSync } from 'node:fs';
-import * as profiles from './profiles.js';
+import * as orgs from './orgs.js';
+import * as mailer from './mailer.js';
+import { ingest } from './ingest.js';
 import Anthropic from '@anthropic-ai/sdk';
 
 const PORT = process.env.PORT || 8080;
@@ -125,6 +127,31 @@ let ORDERS = null;
 try { ORDERS = JSON.parse(readFileSync(new URL('./orders_summary.json', import.meta.url))); }
 catch { console.warn('orders_summary.json not found — product-mix knowledge disabled'); }
 
+/* The calling company's OWN sales, if their admin has uploaded any. This is the only
+   place "we sell to them" comes from now: the shared table is market data and carries
+   no company's customer list. Rendered after the cached block, so one company's
+   figures never enter another's cache. */
+function salesContext(sales) {
+  if (!sales || !sales.accounts || !Object.keys(sales.accounts).length) {
+    return "THE REP'S OWN SALES: none uploaded. You do NOT know who this company sells to, "
+      + 'how much, or when they last ordered. Treat every door as a prospect, never claim or '
+      + 'guess a trading relationship, and if the rep asks about their accounts, say their '
+      + 'admin has not uploaded a sales export yet.';
+  }
+  const rows = Object.entries(sales.accounts)
+    .sort((a, b) => (b[1].rev || 0) - (a[1].rev || 0)).slice(0, 400);
+  const o = sales.overall || {};
+  let s = "THE REP'S OWN SALES (first-party, uploaded by their company - this is who THEY sell to).\n";
+  if (o.rev) s += `Overall $${o.rev.toLocaleString()}${o.orders ? ` across ${o.orders} orders` : ''}.\n`;
+  if (o.top && o.top.length) s += `Their top products: ${o.top.map((t) => `${t[0]} ($${t[1].toLocaleString()})`).join('; ')}.\n`;
+  s += 'PER ACCOUNT (licence | name | $ | orders | last order):\n';
+  for (const [lic, a] of rows) {
+    s += `${lic} | ${a.name} | $${(a.rev || 0).toLocaleString()} | ${a.orders || '?'} | ${a.last || 'unknown'}\n`;
+  }
+  s += 'Any door NOT in this list, they have never sold to. Say so plainly rather than guessing.\n';
+  return s;
+}
+
 /* What the rep currently has on the map. Sent with every message and rendered
    AFTER the cached account block, so a route that changes on every turn never
    invalidates the ~178k-token cache. */
@@ -214,7 +241,8 @@ FIELD MEANINGS
 - store_rank: statewide performance rank (1 = best-performing store in NY). sales_window_usd / sales_30d_usd are estimated sell-through.
 - momentum_vs_market_pct (MOST ACTIONABLE): the store's momentum minus the market median. The whole NY market grows, so judge relative: positive = accelerating faster than the typical store (push, secure shelf space); negative = cooling relative to the market (defend, investigate).
 - cod_only_list ("2x", "3x"): NY OCM publishes a list of retail licensees that other licensees may sell to on a CASH-ON-DELIVERY basis only — no credit terms. The number is how many of the last 3 published editions the door appeared on. This is a terms-and-collections fact, NOT a reason to skip the door: plenty of high-volume stores are on it. Say it plainly whenever you recommend a COD door ("sell it COD, no terms"), and treat 3x — on every edition — as a real AR risk worth raising with the rep before they extend anything. A door with no value here simply was not on the published list.
-- days_since_order / hist_rev_usd: recency and historical revenue with the rep's own company.
+- days_since_order / hist_rev_usd: BLANK for every door in the table below. A trading
+  relationship comes ONLY from the rep's own uploaded sales, given separately above.
   NEVER state, imply or estimate a relationship or a revenue figure that is not literally in
   the row. A BLANK hist_rev_usd means the door has NEVER ordered from us -- it is not an
   unknown to be filled in, and a "New Prospect"/"Priority T1-T3" role means exactly that, no
@@ -362,7 +390,9 @@ function searchErrors(response) {
 }
 
 const app = express();
-app.use(express.json({ limit: '2mb' }));
+// 20mb, not 2: a sales export is posted as text in the body and a year of line
+// items from a real wholesaler runs to several megabytes.
+app.use(express.json({ limit: '20mb' }));
 app.set('trust proxy', true);
 
 app.use((req, res, next) => {
@@ -396,6 +426,14 @@ app.post('/chat', async (req, res) => {
       return res.status(400).json({ error: 'Last message must be from the user.' });
     }
 
+    // Whose data is this? A signed-in caller gets their own company's figures; anyone
+    // else gets the market baseline and no relationship layer at all.
+    req.__orgSales = null;
+    if (req.body?.email && req.body?.code) {
+      try { req.__orgSales = await orgs.getSales({ email: req.body.email, code: req.body.code }); }
+      catch (e) { console.warn('sales lookup failed for chat:', e.message); }
+    }
+
     // Which brand is the rep selling? Sent by the map's "What you're selling" selector.
     const rawBrand = typeof req.body?.brand === 'string' ? req.body.brand.slice(0, 80).trim() : '';
     // Only honour a brand we actually hold data for, so a junk value can't smuggle
@@ -421,9 +459,10 @@ app.post('/chat', async (req, res) => {
         // 1h TTL, not the default 5m: reps ask a question every few minutes, so at
         // 5m nearly every question paid a fresh ~178k-token cache WRITE (1.25x)
         // instead of a read (0.1x) — ~$0.67 vs ~$0.05 per cold question.
-        { type: 'text', text: 'ACCOUNT DATA (' + ACCOUNTS.length + ' doors):\n' + TABLE + (ORDERS_TEXT ? '\n\n' + ORDERS_TEXT : '') + (BRAND_TEXT ? '\n\n' + BRAND_TEXT : ''), cache_control: { type: 'ephemeral', ttl: '1h' } },
+        { type: 'text', text: 'ACCOUNT DATA (' + ACCOUNTS.length + ' doors):\n' + TABLE + (BRAND_TEXT ? '\n\n' + BRAND_TEXT : ''), cache_control: { type: 'ephemeral', ttl: '1h' } },
         { type: 'text', text: brandContext(brand) },
         { type: 'text', text: routeContext(req.body?.route) },
+        { type: 'text', text: salesContext(req.__orgSales) },
       ],
       messages,
     };
@@ -513,30 +552,107 @@ app.post('/visit-log', async (req, res) => {
   res.json({ ok: true, hubspot });
 });
 
-/* ----- Rep profiles: sign-in, plus saved filters and saved routes -----
-   Thin HTTP over profiles.js. Every route reports the store's own error status so a
+/* ----- Companies, their people, and their own sales data -----
+   Thin HTTP over orgs.js. Every route reports the store's own error status so a
    misconfigured bucket says so instead of looking like a bad password. */
-function profileErr(res, e) {
+function orgErr(res, e) {
   const status = e.status || 500;
-  if (status >= 500) console.error('profile error:', e);
-  res.status(status).json({ error: e.message || 'profile store failed' });
+  if (status >= 500) console.error('org error:', e);
+  res.status(status).json({ error: e.message || 'the company store failed' });
 }
+const creds = (b) => ({ email: b.email, code: b.code });
 
-app.get('/auth/status', (req, res) => res.json({ configured: profiles.configured() }));
+app.get('/auth/status', (req, res) => res.json({
+  configured: orgs.configured(), email: mailer.canSend(),
+}));
 
-app.post('/auth/register', async (req, res) => {
+// Step one for a new customer: the company, and the admin who runs it.
+app.post('/org/create', async (req, res) => {
   const b = req.body || {};
-  try { res.json(await profiles.register(b)); } catch (e) { profileErr(res, e); }
+  try {
+    const out = await orgs.createOrg(b);
+    res.json({ org: { id: out.org.id, name: out.org.name }, ...out.user });
+  } catch (e) { orgErr(res, e); }
 });
 
 app.post('/auth/login', async (req, res) => {
+  try { res.json(await orgs.login(req.body || {})); } catch (e) { orgErr(res, e); }
+});
+
+// The link out of an invite email. Signs them in; no code to type.
+app.post('/auth/redeem', async (req, res) => {
+  try { res.json(await orgs.redeem(req.body || {})); } catch (e) { orgErr(res, e); }
+});
+
+app.get('/org/users', async (req, res) => {
+  try { res.json(await orgs.listUsers({ email: req.query.email, code: req.query.code })); }
+  catch (e) { orgErr(res, e); }
+});
+
+app.post('/org/users/add', async (req, res) => {
   const b = req.body || {};
-  try { res.json(await profiles.login(b)); } catch (e) { profileErr(res, e); }
+  try {
+    const out = await orgs.addUser(b);
+    let mailed = false, mailError = null;
+    if (mailer.canSend()) {
+      // Best effort: a mail outage must not cost the admin the invite itself.
+      try {
+        await mailer.sendInvite({
+          to: out.user.email, name: out.user.name, orgName: out.org.name,
+          invitedBy: out.invitedBy, token: out.invite, isAdmin: out.user.role === 'admin',
+        });
+        mailed = true;
+      } catch (err) { mailError = err.message; console.error('invite email failed:', err); }
+    }
+    res.json({ user: out.user, reinvited: out.reinvited, mailed, mailError,
+               link: (process.env.APP_URL || 'https://zelidav.github.io/jbd-sales-map/') + '#invite=' + out.invite });
+  } catch (e) { orgErr(res, e); }
 });
 
 app.post('/me/save', async (req, res) => {
+  try { res.json(await orgs.save(req.body || {})); } catch (e) { orgErr(res, e); }
+});
+
+app.post('/me/tutorial', async (req, res) => {
+  try { res.json(await orgs.setTutorial(req.body || {})); } catch (e) { orgErr(res, e); }
+});
+
+/* ----- A company's own sales export -----
+   Claude reads the header to work out the columns and matches the leftover store
+   names to licences; the arithmetic is done here in code. Admin only: this decides
+   what every rep in the company sees as "ours". */
+app.post('/org/sales', async (req, res) => {
   const b = req.body || {};
-  try { res.json(await profiles.save(b)); } catch (e) { profileErr(res, e); }
+  try {
+    // Admin BEFORE the ingest, not after: this runs two Claude calls and rewrites what
+    // every rep in the company sees, so a member must not be able to start it and only
+    // be refused at the save.
+    await orgs.requireAdmin(creds(b));
+    if (typeof b.csv !== 'string' || !b.csv.trim()) {
+      return res.status(400).json({ error: 'send the file contents as text in "csv"' });
+    }
+    if (b.csv.length > 12e6) {
+      return res.status(413).json({ error: 'that file is over 12MB — export a narrower date range' });
+    }
+    const doors = ACCOUNTS.map((d) => ({ n: d.n, c: d.c, lic: d.lic }));
+    const out = await ingest(b.csv, doors);
+    const saved = await orgs.putSales(creds(b), { ...out, filename: String(b.filename || '').slice(0, 200) });
+    res.json({
+      ok: true, filename: saved.filename, uploadedAt: saved.uploadedAt,
+      rows: out.rows, matched: out.matched, unmatchedRows: out.unmatchedRows,
+      unmatched: out.unmatched, columns: out.columns, overall: out.overall,
+      accounts: out.accounts,
+    });
+  } catch (e) { orgErr(res, e); }
+});
+
+app.get('/org/sales', async (req, res) => {
+  try { res.json(await orgs.getSales({ email: req.query.email, code: req.query.code }) || {}); }
+  catch (e) { orgErr(res, e); }
+});
+
+app.delete('/org/sales', async (req, res) => {
+  try { res.json(await orgs.clearSales(req.body || {})); } catch (e) { orgErr(res, e); }
 });
 
 // Best-effort review endpoint (this instance only — Cloud Logging is the source of truth).

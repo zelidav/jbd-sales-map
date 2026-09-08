@@ -14,7 +14,10 @@ KEY_SECRET="${KEY_SECRET:-SALESBOT_ANTHROPIC_API_KEY}"
 # Rep profiles (sign-in + saved routes/filters) live in this bucket; INVITE_CODE is what
 # lets a new rep create a profile for themselves.
 PROFILE_BUCKET="${PROFILE_BUCKET:-jbd-sales-map-profiles}"
-INVITE_CODE="${INVITE_CODE:-JBNY123}"
+# SIGNUP_CODE gates who may create a COMPANY -- issue it to a paying customer.
+# People inside a company are added by their own admin and never type it.
+SIGNUP_CODE="${SIGNUP_CODE:-JBNY-SETUP-2026}"
+APP_URL="${APP_URL:-https://zelidav.github.io/jbd-sales-map/}"
 
 cd "$(dirname "$0")"
 
@@ -42,8 +45,8 @@ gcloud run deploy "$SERVICE" \
   --timeout 300 \
   --concurrency 40 \
   --max-instances 3 \
-  --set-env-vars "BOT_MODEL=${BOT_MODEL},ALLOWED_ORIGIN=${ALLOWED_ORIGIN},PROFILE_BUCKET=${PROFILE_BUCKET},INVITE_CODE=${INVITE_CODE}" \
-  --set-secrets "ANTHROPIC_API_KEY=${KEY_SECRET}:latest"
+  --set-env-vars "BOT_MODEL=${BOT_MODEL},ALLOWED_ORIGIN=${ALLOWED_ORIGIN},PROFILE_BUCKET=${PROFILE_BUCKET},SIGNUP_CODE=${SIGNUP_CODE},APP_URL=${APP_URL}" \
+  --set-secrets "ANTHROPIC_API_KEY=${KEY_SECRET}:latest,RESEND_API_KEY=SALESMAP_RESEND_KEY:latest"
 
 URL=$(gcloud run services describe "$SERVICE" --project "$PROJECT" --region "$REGION" --format='value(status.url)')
 echo
