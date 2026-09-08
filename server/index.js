@@ -613,6 +613,10 @@ app.post('/me/save', async (req, res) => {
   try { res.json(await orgs.save(req.body || {})); } catch (e) { orgErr(res, e); }
 });
 
+app.post('/org/brands', async (req, res) => {
+  try { res.json(await orgs.setBrands(req.body || {})); } catch (e) { orgErr(res, e); }
+});
+
 app.post('/me/tutorial', async (req, res) => {
   try { res.json(await orgs.setTutorial(req.body || {})); } catch (e) { orgErr(res, e); }
 });

@@ -47,8 +47,24 @@ export function parseDelimited(text) {
   if (cell.length || row.length) { row.push(cell); rows.push(row); }
   while (rows.length && rows[rows.length - 1].every((x) => !String(x).trim())) rows.pop();
   if (!rows.length) throw Object.assign(new Error('that file has no rows in it'), { status: 400 });
-  const header = rows[0].map((h) => String(h).trim());
-  return { header, rows: rows.slice(1).filter((r) => r.some((x) => String(x).trim())), delimiter: D };
+
+  // Report exporters (Distru, QuickBooks, most BI tools) put a title and a filter
+  // summary above the real header. Taking row 0 blindly reads "Date | Apr 1 2026 to
+  // Sep 8 2026" as the column names and everything after it falls apart. The header is
+  // the first wide row that starts a block of rows shaped like it.
+  const width = (r) => r.filter((x) => String(x).trim()).length;
+  let head = 0;
+  for (let i = 0; i < Math.min(rows.length - 1, 15); i++) {
+    if (width(rows[i]) < 3) continue;
+    const n = rows[i].length;
+    let agree = 0;
+    for (let k = i + 1; k < Math.min(rows.length, i + 4); k++) {
+      if (width(rows[k]) && rows[k].length === n) agree++;
+    }
+    if (agree >= 2 || (agree >= 1 && rows.length - i <= 3)) { head = i; break; }
+  }
+  const header = rows[head].map((h) => String(h).trim());
+  return { header, rows: rows.slice(head + 1).filter((r) => r.some((x) => String(x).trim())), delimiter: D, headerRow: head };
 }
 
 const num = (v) => {
@@ -92,13 +108,14 @@ const MAP_TOOL = {
       store: { type: ['string', 'null'], description: 'Header of the column naming the dispensary/customer. null if absent.' },
       license: { type: ['string', 'null'], description: 'Header of the column holding a state licence number (e.g. OCM-...). null if absent.' },
       date: { type: ['string', 'null'], description: 'Header of the order/invoice date column. null if absent.' },
-      amount: { type: ['string', 'null'], description: 'Header of the line or order dollar total. null if absent.' },
+      amount: { type: ['string', 'null'], description: 'Header of the dollar value SOLD. When a file has both a sold/invoiced total and an amount paid or received, choose the SOLD one - money collected is an AR question, not a sales one. null if absent.' },
       product: { type: ['string', 'null'], description: 'Header of the product/SKU name column. null if absent.' },
       quantity: { type: ['string', 'null'], description: 'Header of the units/quantity column. null if absent.' },
-      order_id: { type: ['string', 'null'], description: 'Header of the invoice/order number, used to count orders. null if absent.' },
+      order_id: { type: ['string', 'null'], description: 'Header of the invoice/order NUMBER (an identifier), used to count distinct orders in a line-item file. null if absent.' },
+      order_count: { type: ['string', 'null'], description: 'Header of a column that already holds a COUNT of orders, in a file summarised one row per customer. Never put an identifier here. null if absent.' },
       notes: { type: 'string', description: 'One short sentence on anything odd about this file.' },
     },
-    required: ['store', 'license', 'date', 'amount', 'product', 'quantity', 'order_id', 'notes'],
+    required: ['store', 'license', 'date', 'amount', 'product', 'quantity', 'order_id', 'order_count', 'notes'],
   },
 };
 
@@ -205,11 +222,15 @@ ${list}`,
 /** Aggregate mapped rows into the per-door shape the map and the bot read. */
 export function aggregate(header, rows, cols, licFor) {
   const idx = {};
-  for (const k of ['store', 'license', 'date', 'amount', 'product', 'quantity', 'order_id']) {
+  for (const k of ['store', 'license', 'date', 'amount', 'product', 'quantity', 'order_id', 'order_count']) {
     idx[k] = cols[k] ? header.indexOf(cols[k]) : -1;
   }
   const accounts = {};
-  const overall = { rev: 0, orders: new Set(), mo: {}, top: {} };
+  // Two different shapes: a line-item file where orders are counted by distinct id, and
+  // a summary file that already states the count. Adding an id to a total, or counting a
+  // count as one order, both silently under-report -- so they are kept apart.
+  const counted = idx.order_count >= 0;
+  const overall = { rev: 0, orders: counted ? 0 : new Set(), mo: {}, top: {} };
   let unmatchedRows = 0;
 
   for (const r of rows) {
@@ -222,15 +243,16 @@ export function aggregate(header, rows, cols, licFor) {
     const prod = idx.product >= 0 ? String(r[idx.product] || '').trim() : '';
     const ord = idx.order_id >= 0 ? String(r[idx.order_id] || '').trim() : (when || '');
 
+    const cnt = counted ? Math.round(num(r[idx.order_count])) : 0;
     overall.rev += amt;
-    if (ord) overall.orders.add(ord);
+    if (counted) overall.orders += cnt; else if (ord) overall.orders.add(ord);
     if (month) overall.mo[month] = (overall.mo[month] || 0) + amt;
     if (prod) overall.top[prod] = (overall.top[prod] || 0) + amt;
 
     if (!lic) { unmatchedRows++; continue; }
-    const a = accounts[lic] || (accounts[lic] = { name: rawName, rev: 0, orders: new Set(), last: null, mo: {}, top: {} });
+    const a = accounts[lic] || (accounts[lic] = { name: rawName, rev: 0, orders: counted ? 0 : new Set(), last: null, mo: {}, top: {} });
     a.rev += amt;
-    if (ord) a.orders.add(ord);
+    if (counted) a.orders += cnt; else if (ord) a.orders.add(ord);
     if (when && (!a.last || when > a.last)) a.last = when;
     if (month) a.mo[month] = (a.mo[month] || 0) + amt;
     if (prod) a.top[prod] = (a.top[prod] || 0) + amt;
@@ -243,12 +265,12 @@ export function aggregate(header, rows, cols, licFor) {
 
   const out = {};
   for (const [lic, a] of Object.entries(accounts)) {
-    out[lic] = { name: a.name, rev: Math.round(a.rev), orders: a.orders.size || null,
+    out[lic] = { name: a.name, rev: Math.round(a.rev), orders: (counted ? a.orders : a.orders.size) || null,
                  last: a.last, mo: moList(a.mo), top: topList(a.top) };
   }
   return {
     accounts: out,
-    overall: { rev: Math.round(overall.rev), orders: overall.orders.size || null,
+    overall: { rev: Math.round(overall.rev), orders: (counted ? overall.orders : overall.orders.size) || null,
                mo: moList(overall.mo), top: topList(overall.top) },
     unmatchedRows,
   };

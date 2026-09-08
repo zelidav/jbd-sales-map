@@ -99,6 +99,14 @@ label.tog{display:inline-flex;align-items:center;gap:5px;font-size:12px;cursor:p
 .pf .two{display:flex;gap:9px}.pf .two>*{flex:1;min-width:0}
 .pf .hint{font-size:10.5px;color:#888;margin-top:4px}
 .pfrow{display:flex;gap:9px}.pfrow>.pf{flex:1;min-width:0}
+/* A company's own brands, pinned above the full brand list. */
+#ourbrands{display:none;margin-bottom:6px}
+#ourbrands .obl{font-size:10px;color:#888;margin-bottom:3px}
+.bchip{display:inline-block;padding:6px 11px;margin:0 4px 4px 0;border-radius:14px;border:1.5px solid #1f7a44;
+  background:#fff;color:#1f7a44;font-size:12px;font-weight:700;cursor:pointer;touch-action:manipulation}
+.bchip.on{background:#1f7a44;color:#fff}
+.bchip .wh{font-weight:400;opacity:.85}
+@media(max-width:760px){.bchip{padding:9px 14px;font-size:13px}}
 .pmini{background:#eef2ee;border:1px solid #d2d8d2;border-radius:8px;padding:9px;font-size:12px;cursor:pointer;font-weight:700;color:#2c4235;white-space:nowrap}
 #plango{width:100%;padding:15px;border:0;border-radius:11px;background:#1f7a44;color:#fff;font-size:16px;font-weight:800;cursor:pointer;margin-top:4px}
 #plango:disabled{opacity:.55;cursor:default}
@@ -432,6 +440,7 @@ window.PROFILE=null;
 <button id="ftoggle" type="button">Filters <span id="fcount"></span><span id="fchev">▾</span></button>
 <div id="filterbody">
 <div class="frow"><b>Top stores for a brand</b>
+ <div id="ourbrands"><div class="obl">Your brands</div><div id="ourbrandchips"></div></div>
  <select id="sellbrand" style="width:100%;padding:6px 8px;border:1px solid #ccc;border-radius:6px;font-size:12px;background:#fff"></select>
  <div id="carrierow" style="margin-top:5px;display:none">
   <span class="chip cchip on" data-carr="yes" style="background:#14241a;color:#fff">🏆 Top stores</span>
@@ -469,6 +478,7 @@ window.PROFILE=null;
  <div style="display:flex;gap:5px;margin-top:6px">
   <button id="upsales" style="flex:1;padding:7px;border:1px solid #1f7a44;background:#1f7a44;color:#fff;border-radius:6px;font-weight:700;cursor:pointer;font-size:11.5px">📈 Upload sales</button>
   <button id="adduser" style="flex:1;padding:7px;border:1px solid #ccc;background:#fff;border-radius:6px;font-weight:700;cursor:pointer;font-size:11.5px">👥 Add people</button></div>
+ <div style="margin-top:5px"><button id="editbrands" style="width:100%;padding:6px;border:1px solid #ccc;background:#fff;border-radius:6px;cursor:pointer;font-size:11px">🏷️ Brands we sell</button></div>
  <input id="salesfile" type="file" accept=".csv,.tsv,.txt" style="display:none"/>
  <div id="teamlist" style="margin-top:6px"></div></div>
 <div class="frow" id="savedrow"><b>Saved <span style="font-weight:400;color:#888" id="whoami"></span></b>
@@ -1700,8 +1710,45 @@ function applyOrgSales(sales){
    MIX[lic]={rev:a.rev,o:a.orders||0,last:a.last||'',
      fam:{},mo:a.mo||[],top:a.top||[]};});
  }
- renderAdmin();
+ renderAdmin();renderOurBrands();
  if(window.__rendered)render();}
+
+/* ===== A company's own brands ==============================================
+   One tap to the doors that stock what you sell, and one to the whitespace. This is
+   the JB/Dragonfly pair of buttons rebuilt as a property of the signed-in company,
+   so it works for every customer rather than the two it was written for. */
+function renderOurBrands(){
+ var wrap=document.getElementById('ourbrands');if(!wrap)return;
+ var p=window.PROFILE,brands=(p&&p.org&&p.org.brands)||[];
+ // Only offer a brand the carriage data can actually answer for; otherwise the chip
+ // would filter to nothing and look broken.
+ var known={};BRANDLIST.forEach(function(b){known[b.n.toLowerCase()]=b;});
+ var usable=brands.filter(function(b){return known[String(b).toLowerCase()];});
+ if(!usable.length){wrap.style.display='none';return;}
+ wrap.style.display='block';
+ var el=document.getElementById('ourbrandchips');
+ el.innerHTML=usable.map(function(b){
+  var meta=known[b.toLowerCase()];
+  var onStock=(sellBrand===meta.n&&carriage==='yes'), onWhite=(sellBrand===meta.n&&carriage==='no');
+  return '<span class="bchip'+(onStock?' on':'')+'" data-b="'+escAttr(meta.n)+'" data-c="yes" '
+    +'title="'+escAttr(meta.n+' is stocked in '+meta.d+' NY doors')+'">'+esc(meta.n)+' <span class="wh">\u00b7 '+meta.d+'</span></span>'
+   +'<span class="bchip'+(onWhite?' on':'')+'" data-b="'+escAttr(meta.n)+'" data-c="no" '
+    +'title="'+escAttr('Doors that do NOT stock '+meta.n+' \u2014 open whitespace')+'">\u2b55 Whitespace</span>';}).join('');
+ Array.prototype.forEach.call(el.querySelectorAll('.bchip'),function(c){
+  c.onclick=function(){
+   var b=c.dataset.b,want=c.dataset.c;
+   if(sellBrand===b&&carriage===want){sellBrand='';carriage='';}   // tap again to clear
+   else{sellBrand=b;carriage=want;}
+   var sel=document.getElementById('sellbrand');if(sel)sel.value=sellBrand;
+   var row=document.getElementById('carrierow');if(row)row.style.display=sellBrand?'block':'none';
+   Array.prototype.forEach.call(document.querySelectorAll('.cchip'),function(o){
+    var on=o.dataset.carr===carriage;o.classList.toggle('on',on);
+    o.style.background=on?'#14241a':'#fff';o.style.color=on?'#fff':'#333';});
+   var note=document.getElementById('brandnote');
+   if(note){var m=BRANDLIST.find(function(x){return x.n===sellBrand;});
+    note.textContent=m?(sellBrand+': $'+m.v.toLocaleString()+' statewide last full month, stocked in '+m.d+' doors.'):'';}
+   renderOurBrands();render();
+   if(window.innerWidth<=760)document.getElementById('side').classList.remove('open');};});}
 
 /* ===== Company admin ======================================================= */
 function isAdmin(){return window.PROFILE&&window.PROFILE.role==='admin';}
@@ -1755,6 +1802,15 @@ function adminPost(path,body){var p=window.PROFILE;
   fr.readAsText(file);
   f.value='';};
 
+ var eb=document.getElementById('editbrands');
+ if(eb)eb.onclick=function(){
+  var cur=((window.PROFILE.org||{}).brands||[]).join(', ');
+  var v=prompt('Which brands does '+window.PROFILE.org.name+' sell?\n\nComma separated. These become the one-tap filters.',cur);
+  if(v===null)return;
+  var list=v.split(',').map(function(x){return x.trim();}).filter(Boolean);
+  adminPost('/org/brands',{brands:list})
+   .then(function(j){window.PROFILE.org.brands=j.brands;renderOurBrands();renderAdmin();})
+   .catch(function(e){alert(e.message);});};
  document.getElementById('adduser').onclick=function(){
   var em=prompt('Email of the person to add:');if(!em)return;
   var nm=prompt('Their name:')||'';
@@ -1815,7 +1871,7 @@ window.replayTutorial=function(){showTut(0);};
 /* Everything above needs a signed-in profile, so it runs off the profile event. */
 document.addEventListener('profile',function(e){
  var p=e.detail||{};
- renderAdmin();
+ renderAdmin();renderOurBrands();
  applyOrgSales(p.sales||null);
  if(isAdmin())loadTeam();
  if(!p.tutorialDone)setTimeout(function(){showTut(0);},400);});
@@ -1860,7 +1916,7 @@ function applyFilterState(f){
  syncChips(document.getElementById('qualChips'),activeQual);
  syncChips(document.getElementById('roleChips'),activeRoles);
  syncChips(document.getElementById('regionChips'),activeRegions);
- render();}
+ renderOurBrands();render();}
 function routeState(){return {stops:route.map(function(d){return d.lic||d.n;}),
   s:startPt?[startPt.lat,startPt.lng,startPt.label]:null,
   e:endPt?[endPt.lat,endPt.lng,endPt.label]:null,m:MODE,

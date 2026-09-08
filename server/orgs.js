@@ -180,7 +180,7 @@ export async function login({ email, code }) {
     code: u.code,
     role: u.role || 'member',
     tutorialDone: !!u.tutorialDone,
-    org: org ? { id: org.id, name: org.name } : null,
+    org: org ? { id: org.id, name: org.name, brands: org.brands || [] } : null,
     filters: u.filters || [],
     routes: u.routes || [],
     sales: sales ? { uploadedAt: sales.uploadedAt, filename: sales.filename,
@@ -229,6 +229,17 @@ export async function setTutorial({ email, code, done }) {
 }
 
 /* ---------- the company's own sales data --------------------------------- */
+
+/** The brands this company sells. Drives the one-tap brand filters on the map. */
+export async function setBrands({ email, code, brands }) {
+  const admin = await requireAdmin({ email, code });
+  const org = await readJson(orgKey(admin.orgId));
+  if (!org) throw fail('company not found', 404);
+  org.brands = (Array.isArray(brands) ? brands : []).slice(0, 8)
+    .map((b) => String(b || '').trim().slice(0, 80)).filter(Boolean);
+  await writeJson(orgKey(org.id), org);
+  return { ok: true, brands: org.brands };
+}
 
 export async function putSales({ email, code }, payload) {
   const admin = await requireAdmin({ email, code });
