@@ -63,6 +63,7 @@ td.n{text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap}
   <div><h1>Company admin</h1><div class="org" id="orgname"></div></div>
   <div class="sp"></div>
   <a class="map" id="maplink" href="./">← Back to the live map</a>
+  <a class="map" href="./terms.html" target="_blank" style="background:rgba(255,255,255,.14);color:#fff">Terms</a>
   <button id="signout">Sign out</button>
 </header>
 
@@ -75,7 +76,9 @@ td.n{text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap}
 
   <div class="card">
     <h2>Sales data</h2>
-    <div class="sub" id="salessub">The private half of the map: who your company already sells.</div>
+    <div class="sub" id="salessub">The private half of the map: who your company already sells.
+      <br><b>Private to this company.</b> Used internally in aggregated, anonymised form to improve the
+      shared market model — never shown or attributed to you. <a href="./terms.html" target="_blank">Terms</a>.</div>
     <div class="drop" id="drop">
       <b>Drop your sales export here</b><br>
       <span class="muted">or click to choose — .xlsx, .xls, .csv or .tsv</span>
@@ -173,7 +176,10 @@ function renderUsage(){
  var s=STATS,active=s.users.filter(function(u){return u.seen;}).length;
  var savedR=s.users.reduce(function(a,u){return a+u.savedRoutes;},0);
  var savedF=s.users.reduce(function(a,u){return a+u.savedFilters;},0);
- document.getElementById('usagesub').innerHTML='Company created '+(s.org.created?esc(s.org.created.slice(0,10)):'—')
+ var t=s.org.terms;
+ document.getElementById('usagesub').innerHTML=(t?'Terms v'+esc(t.version)+' accepted '+esc((t.acceptedAt||'').slice(0,10))
+   +' by '+esc(t.acceptedBy||'')+' · ':'')
+  +'Company created '+(s.org.created?esc(s.org.created.slice(0,10)):'—')
   +(s.org.brands.length?' · brands: <b>'+esc(s.org.brands.join(', '))+'</b>':' · <span class="muted">no brands set</span>');
  document.getElementById('kpis').innerHTML=[
   ['People',s.users.length,active+' have signed in'],

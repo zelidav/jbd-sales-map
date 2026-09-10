@@ -23,6 +23,7 @@ const BUCKET = process.env.PROFILE_BUCKET || 'jbd-sales-map-profiles';
 const SIGNUP_CODE = process.env.SIGNUP_CODE || '';
 const MAX_SAVED = 40;
 const INVITE_DAYS = 14;
+const TERMS_VERSION = process.env.TERMS_VERSION || '1.0';
 
 let bucket = null;
 try { bucket = new Storage().bucket(BUCKET); }
@@ -86,12 +87,15 @@ export async function requireAdmin(creds) {
 /* ---------- creating a company ------------------------------------------- */
 
 /** Creates the company and its first admin in one step. */
-export async function createOrg({ company, name, email, signupCode }) {
+export async function createOrg({ company, name, email, signupCode, acceptedTerms }) {
   const e = norm(email);
   if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(e)) throw fail('a real email address is required', 400);
   if (!String(company || '').trim()) throw fail('what is the company called?', 400);
   if (!SIGNUP_CODE || String(signupCode || '').trim().toUpperCase() !== SIGNUP_CODE.toUpperCase()) {
     throw fail('that signup code is not right — ask for one to set your company up', 403);
+  }
+  if (!acceptedTerms) {
+    throw fail('the terms have to be accepted to create a company — they cover how uploaded sales data is used', 400);
   }
   if (await readUser(e)) throw fail('there is already an account for that email — sign in instead', 409);
 
@@ -100,6 +104,9 @@ export async function createOrg({ company, name, email, signupCode }) {
     name: String(company).trim().slice(0, 120),
     created: new Date().toISOString(),
     createdBy: e,
+    // Who agreed to what, and when. The give-to-get clause is the reason this is
+    // recorded rather than assumed.
+    terms: { version: TERMS_VERSION, acceptedAt: new Date().toISOString(), acceptedBy: e },
   };
   await writeJson(orgKey(org.id), org);
 
@@ -180,7 +187,7 @@ export async function login({ email, code }) {
     code: u.code,
     role: u.role || 'member',
     tutorialDone: !!u.tutorialDone,
-    org: org ? { id: org.id, name: org.name, brands: org.brands || [] } : null,
+    org: org ? { id: org.id, name: org.name, brands: org.brands || [], terms: org.terms || null } : null,
     filters: u.filters || [],
     routes: u.routes || [],
     sales: sales ? { uploadedAt: sales.uploadedAt, filename: sales.filename,
@@ -306,7 +313,8 @@ export async function stats({ email, code }) {
   for (const r of log.routes) byRep[r.by] = (byRep[r.by] || 0) + 1;
 
   return {
-    org: { id: org?.id, name: org?.name, brands: org?.brands || [], created: org?.created },
+    org: { id: org?.id, name: org?.name, brands: org?.brands || [], created: org?.created,
+           terms: org?.terms || null },
     users,
     routes,
     routeCount: log.routes.length,

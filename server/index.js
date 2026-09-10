@@ -660,6 +660,10 @@ app.post('/org/sales', async (req, res) => {
     const saved = await orgs.putSales(creds(b), { ...out, filename: String(b.filename || '').slice(0, 200) });
     res.json({
       ok: true, filename: saved.filename, uploadedAt: saved.uploadedAt,
+      // Restated on every upload, not buried at signup: this is the moment the data
+      // actually changes hands.
+      dataUse: 'Private to your company. Used internally in aggregated, anonymised form to '
+             + 'improve the shared market model. Never shown or attributed to you.',
       rows: out.rows, matched: out.matched, unmatchedRows: out.unmatchedRows, sheet: out.sheet,
       unmatched: out.unmatched, columns: out.columns, overall: out.overall,
       accounts: out.accounts,

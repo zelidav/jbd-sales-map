@@ -353,6 +353,11 @@ label.tog{display:inline-flex;align-items:center;gap:5px;font-size:12px;cursor:p
     <button type="submit" id="gate-go"
       style="width:100%;margin-top:12px;padding:12px;border:0;border-radius:999px;background:#c9a24b;color:#14241a;font-weight:700;font-size:14px;cursor:pointer;">Sign in</button>
     <p id="gate-err" style="color:#ff8a8a;font-size:12px;min-height:14px;margin:10px 0 0;visibility:hidden;"></p>
+    <label id="gate-terms" style="display:none;margin-top:12px;font-size:11.5px;color:#9db0a4;text-align:left;line-height:1.5">
+      <input type="checkbox" id="gate-accept" style="vertical-align:middle;margin-right:6px"/>
+      I accept the <a href="./terms.html" target="_blank" style="color:#c9a24b">terms</a>, including that
+      sales data we upload stays private to us and may be used internally, aggregated and anonymised,
+      to improve the shared market model — never shown or attributed to us.</label>
     <p style="margin:10px 0 0;font-size:12px;color:#9db0a4">
       <a href="#" id="gate-switch" style="color:#c9a24b">Setting up a new company?</a></p>
   </form>
@@ -410,6 +415,7 @@ window.PROFILE=null;
   sw.onclick=function(e){ e.preventDefault(); mode=(mode==='login'?'create':'login');
     var creating=(mode==='create');
     company.style.display=name.style.display=(creating?'block':'none');
+    document.getElementById('gate-terms').style.display=(creating?'block':'none');
     pw.placeholder=(creating?'Signup code':'Access code');
     go.textContent=(creating?'Create company':'Sign in');
     sw.textContent=(creating?'Already have an account? Sign in':'Setting up a new company?');
@@ -419,7 +425,10 @@ window.PROFILE=null;
     e.preventDefault(); err.style.visibility='hidden'; go.disabled=true; go.textContent='Working...';
     var em=email.value.trim().toLowerCase(), code=pw.value.trim().toUpperCase();
     if(mode==='create'){
-      post('/org/create',{company:company.value.trim(),name:name.value.trim(),email:em,signupCode:code})
+      if(!document.getElementById('gate-accept').checked){
+        return fail('Please accept the terms — they cover how your uploaded sales data is used.');}
+      post('/org/create',{company:company.value.trim(),name:name.value.trim(),email:em,signupCode:code,
+        acceptedTerms:true})
         .then(function(p){
           alert('“'+p.org.name+'” is set up, and you are its admin.\n\nYour access code is:\n\n    '+p.code
             +'\n\nWrite it down — it is how you sign in. Next: add your team and upload your sales data.');
@@ -492,7 +501,8 @@ window.PROFILE=null;
   <button id="savefilters" style="flex:1;padding:6px;border:1px solid #ccc;background:#fff;border-radius:6px;font-size:11px;cursor:pointer">💾 Save filters</button>
   <button id="saveroute" style="flex:1;padding:6px;border:1px solid #ccc;background:#fff;border-radius:6px;font-size:11px;cursor:pointer">💾 Save route</button></div>
  <div id="savedlist" style="margin-top:6px"></div>
- <div style="margin-top:6px"><a href="#" onclick="replayTutorial();return false;" style="font-size:10.5px;color:#888">Show the tutorial again</a></div></div>
+ <div style="margin-top:6px"><a href="#" onclick="replayTutorial();return false;" style="font-size:10.5px;color:#888">Show the tutorial again</a>
+ <span style="color:#ccc">·</span> <a href="./terms.html" target="_blank" style="font-size:10.5px;color:#888">Terms</a></div></div>
 <div class="frow"><b>Targeting</b>
  <div style="display:flex;gap:5px">
   <button id="targets" style="flex:1;padding:7px;border:1px solid #1f7a44;background:#1f7a44;color:#fff;border-radius:6px;font-weight:700;cursor:pointer;font-size:12px">🎯 Rank targets in view</button>
@@ -1840,7 +1850,8 @@ function renderAdmin(){
    +((ORGSALES.unmatched&&ORGSALES.unmatched.length)?'<br><span style="color:#a06a00">'+ORGSALES.unmatched.length
      +' name'+(ORGSALES.unmatched.length===1?'':'s')+' could not be matched: '+esc(ORGSALES.unmatched.slice(0,4).join(', '))+'\u2026</span>':'');
  } else if(isAdmin()){
-  st.innerHTML='No sales data yet. <b>Upload your export</b> and every door you already sell shows as yours \u2014 revenue, recency and product mix.';
+  st.innerHTML='No sales data yet. <b>Upload your export</b> and every door you already sell shows as yours \u2014 revenue, recency and product mix.'
+   +'<br><span style="color:#8a958c">Private to your company; used internally anonymised to improve the shared baseline. <a href="./terms.html" target="_blank">Terms</a>.</span>';
  } else {
   st.textContent='Your admin has not uploaded your sales data yet, so this is the market view only.';
  }
