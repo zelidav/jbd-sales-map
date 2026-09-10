@@ -260,4 +260,69 @@ export async function clearSales({ email, code }) {
   return { ok: true };
 }
 
+/* ---------- what the company is actually doing with it -------------------- */
+
+const routesKey = (id) => `orgs/${id}/routelog.json`;
+const ROUTELOG_MAX = 300;
+
+/** A route a rep handed to Google Maps or exported. Kept per company so an admin can
+ *  see the tool being used; the in-memory ring it replaces died with the instance. */
+export async function logRoute({ email, code }, rec) {
+  const u = await auth({ email, code });
+  if (!u.orgId) return { ok: false };
+  const key = routesKey(u.orgId);
+  const log = (await readJson(key)) || { routes: [] };
+  log.routes.unshift({ ...rec, by: u.name || u.email, ts: new Date().toISOString() });
+  log.routes = log.routes.slice(0, ROUTELOG_MAX);
+  await writeJson(key, log);
+  return { ok: true, count: log.routes.length };
+}
+
+/** Everything the admin view shows: the team, what they have saved, what they have
+ *  built, and the state of the company's uploaded sales. */
+export async function stats({ email, code }) {
+  const admin = await requireAdmin({ email, code });
+  const org = await readJson(orgKey(admin.orgId));
+  const sales = await readJson(salesKey(admin.orgId)).catch(() => null);
+  const log = (await readJson(routesKey(admin.orgId)).catch(() => null)) || { routes: [] };
+
+  const [files] = await bucket.getFiles({ prefix: 'u/' });
+  const users = [];
+  for (const f of files) {
+    const [buf] = await f.download();
+    const u = JSON.parse(buf.toString('utf8'));
+    if (u.orgId !== admin.orgId) continue;
+    users.push({
+      email: u.email, name: u.name, role: u.role || 'member',
+      seen: u.seen || null, created: u.created || null, pending: !!u.invite,
+      tutorialDone: !!u.tutorialDone,
+      savedFilters: (u.filters || []).length, savedRoutes: (u.routes || []).length,
+    });
+  }
+  users.sort((a, b) => (b.seen || '').localeCompare(a.seen || ''));
+
+  const routes = log.routes.slice(0, 40);
+  const byRep = {};
+  for (const r of log.routes) byRep[r.by] = (byRep[r.by] || 0) + 1;
+
+  return {
+    org: { id: org?.id, name: org?.name, brands: org?.brands || [], created: org?.created },
+    users,
+    routes,
+    routeCount: log.routes.length,
+    routesByRep: byRep,
+    sales: sales ? {
+      uploadedAt: sales.uploadedAt, uploadedBy: sales.uploadedBy, filename: sales.filename,
+      rows: sales.rows, sheet: sales.sheet || null,
+      matched: Object.keys(sales.accounts || {}).length,
+      unmatched: sales.unmatched || [],
+      columns: sales.columns || null,
+      overall: sales.overall || null,
+      top: Object.entries(sales.accounts || {})
+        .map(([lic, a]) => ({ lic, name: a.name, rev: a.rev, orders: a.orders, last: a.last }))
+        .sort((x, y) => (y.rev || 0) - (x.rev || 0)).slice(0, 25),
+    } : null,
+  };
+}
+
 export const configured = () => !!bucket && !!SIGNUP_CODE;

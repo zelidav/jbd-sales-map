@@ -526,6 +526,15 @@ app.post('/route-log', (req, res) => {
   };
   pushRing(routeRing, rec);
   console.log('ROUTE_LOG ' + JSON.stringify(rec));
+  // Also persist against the company when the caller is signed in, so an admin can see
+  // usage after this instance is gone.
+  if (p.email && p.code) {
+    orgs.logRoute({ email: p.email, code: p.code }, {
+      channel: rec.channel, miles: rec.miles, stops: rec.stops.length,
+      start: rec.start, end: rec.end,
+      names: rec.stops.slice(0, 12).map((s) => s.name),
+    }).catch((e) => console.warn('org route log failed:', e.message));
+  }
   res.json({ ok: true });
 });
 
@@ -611,6 +620,11 @@ app.post('/org/users/add', async (req, res) => {
 
 app.post('/me/save', async (req, res) => {
   try { res.json(await orgs.save(req.body || {})); } catch (e) { orgErr(res, e); }
+});
+
+app.get('/org/stats', async (req, res) => {
+  try { res.json(await orgs.stats({ email: req.query.email, code: req.query.code })); }
+  catch (e) { orgErr(res, e); }
 });
 
 app.post('/org/brands', async (req, res) => {

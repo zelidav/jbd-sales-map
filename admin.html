@@ -1,0 +1,280 @@
+<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"/>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect width='32' height='32' rx='7' fill='%2314241a'/><path d='M16 6c-3.9 0-7 3.1-7 7 0 5.2 7 13 7 13s7-7.8 7-13c0-3.9-3.1-7-7-7z' fill='%23c9a24b'/><circle cx='16' cy='13' r='2.6' fill='%2314241a'/></svg>"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>Retail Intel — Company admin</title>
+<style>
+:root{--ink:#14241a;--gold:#c9a24b;--green:#1f7a44}
+*{box-sizing:border-box}
+body{margin:0;font:15px/1.55 -apple-system,"Segoe UI",Helvetica,Arial,sans-serif;background:#eef2ee;color:var(--ink)}
+header{background:linear-gradient(135deg,#1c3a28,#14241a);color:#fff;padding:16px 22px;display:flex;align-items:center;gap:14px;flex-wrap:wrap}
+header h1{margin:0;font-size:17px;letter-spacing:.2px}
+header .org{color:var(--gold);font-size:12.5px;margin-top:2px}
+header .sp{flex:1}
+header a.map{background:var(--gold);color:var(--ink);text-decoration:none;padding:9px 16px;border-radius:9px;font-weight:800;font-size:13px;white-space:nowrap}
+header button{background:rgba(255,255,255,.14);color:#fff;border:1px solid rgba(255,255,255,.25);border-radius:9px;padding:9px 14px;font:inherit;font-size:13px;cursor:pointer}
+main{max-width:1080px;margin:0 auto;padding:20px 16px 60px}
+.card{background:#fff;border-radius:14px;padding:18px 20px;margin-bottom:16px;box-shadow:0 1px 4px rgba(0,0,0,.07)}
+.card h2{margin:0 0 3px;font-size:15px;letter-spacing:.3px;text-transform:uppercase;color:#5a6b5e}
+.card .sub{color:#8a958c;font-size:12.5px;margin-bottom:14px}
+.kpis{display:flex;gap:12px;flex-wrap:wrap}
+.kpi{flex:1;min-width:132px;background:#f7faf7;border:1px solid #e4ebe5;border-radius:11px;padding:12px 14px}
+.kpi b{display:block;font-size:23px;line-height:1.15;font-variant-numeric:tabular-nums}
+.kpi span{font-size:11.5px;color:#7a857c}
+table{width:100%;border-collapse:collapse;font-size:13.5px}
+th{text-align:left;font-size:11px;text-transform:uppercase;letter-spacing:.5px;color:#8a958c;padding:6px 8px;border-bottom:1px solid #e8ece8}
+td{padding:7px 8px;border-bottom:1px solid #f2f4f2;vertical-align:top}
+td.n{text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap}
+.tag{display:inline-block;font-size:10.5px;font-weight:700;padding:2px 8px;border-radius:10px}
+.tag.admin{background:#14241a;color:#fff}
+.tag.member{background:#eef2ee;color:#5a6b5e}
+.tag.pend{background:#fdf3e2;color:#a06a00}
+.tag.live{background:#e8f3ec;color:var(--green)}
+.btn{background:var(--green);color:#fff;border:0;border-radius:10px;padding:12px 18px;font:inherit;font-weight:700;cursor:pointer}
+.btn.alt{background:#fff;color:var(--ink);border:1px solid #ccc}
+.btn:disabled{opacity:.55;cursor:default}
+.row{display:flex;gap:9px;flex-wrap:wrap;align-items:center}
+.drop{border:2px dashed #c3cfc6;border-radius:12px;padding:26px;text-align:center;color:#7a857c;background:#fbfdfb;cursor:pointer}
+.drop.over{border-color:var(--green);background:#f0f7f2;color:var(--ink)}
+.msg{margin-top:11px;font-size:13px}
+.msg.err{color:#b00}
+.msg.ok{color:var(--green)}
+.warn{background:#fdf7ec;border-left:3px solid var(--gold);padding:10px 13px;border-radius:0 8px 8px 0;font-size:13px;margin-top:11px}
+#gate{position:fixed;inset:0;background:#14241a;display:flex;align-items:center;justify-content:center;padding:20px;z-index:50}
+#gate form{width:340px;max-width:100%;text-align:center}
+#gate h2{color:#fff;margin:0 0 4px;font-size:18px}
+#gate p{color:#9db0a4;font-size:12px;margin:0 0 18px}
+#gate input{width:100%;padding:12px 15px;margin-bottom:9px;border-radius:10px;border:1px solid #2c4235;background:#0e1a13;color:#fff;font-size:15px;text-align:center;outline:none}
+#gate button{width:100%;padding:12px;border:0;border-radius:999px;background:var(--gold);color:var(--ink);font-weight:700;font-size:14px;cursor:pointer}
+#gate .e{color:#ff8a8a;font-size:12px;min-height:16px;margin-top:9px}
+.muted{color:#8a958c}
+@media(max-width:700px){main{padding:14px 10px 50px}.card{padding:15px 14px}.kpi b{font-size:20px}}
+</style></head><body>
+
+<div id="gate"><form id="gform">
+  <h2>Company admin</h2>
+  <p>Uploads, team and usage</p>
+  <input id="gemail" type="email" placeholder="you@company.com" autocomplete="email" autofocus/>
+  <input id="gcode" type="text" placeholder="Access code" style="letter-spacing:2px;text-transform:uppercase"/>
+  <button type="submit" id="ggo">Sign in</button>
+  <div class="e" id="gerr"></div>
+</form></div>
+
+<header>
+  <div><h1>Company admin</h1><div class="org" id="orgname"></div></div>
+  <div class="sp"></div>
+  <a class="map" id="maplink" href="./">← Back to the live map</a>
+  <button id="signout">Sign out</button>
+</header>
+
+<main id="main" style="display:none">
+  <div class="card">
+    <h2>Usage</h2>
+    <div class="sub" id="usagesub"></div>
+    <div class="kpis" id="kpis"></div>
+  </div>
+
+  <div class="card">
+    <h2>Sales data</h2>
+    <div class="sub" id="salessub">The private half of the map: who your company already sells.</div>
+    <div class="drop" id="drop">
+      <b>Drop your sales export here</b><br>
+      <span class="muted">or click to choose — .xlsx, .xls, .csv or .tsv</span>
+    </div>
+    <input id="file" type="file" accept=".csv,.tsv,.txt,.xlsx,.xls" style="display:none"/>
+    <div class="msg" id="upmsg"></div>
+    <div id="salesdetail"></div>
+  </div>
+
+  <div class="card">
+    <h2>Team</h2>
+    <div class="sub">Who can see this company's view, and what they have built.</div>
+    <div class="row" style="margin-bottom:12px">
+      <button class="btn" id="adduser">Add someone</button>
+      <button class="btn alt" id="editbrands">Brands we sell</button>
+    </div>
+    <div id="team"></div>
+  </div>
+
+  <div class="card">
+    <h2>Routes built</h2>
+    <div class="sub">Every route a rep handed to Google Maps or exported.</div>
+    <div id="routes"></div>
+  </div>
+</main>
+
+<script>
+var BOT="https://jbd-sales-bot-ltqqg7poja-uc.a.run.app";
+var KEY="jbd_profile_v1";      // shared with the map, so signing in once covers both
+var ME=null, STATS=null;
+
+function esc(s){return String(s==null?'':s).replace(/[&<>"']/g,function(c){
+ return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];});}
+function money(n){n=+n||0;return n>=1e6?'$'+(n/1e6).toFixed(2)+'M':n>=1000?'$'+Math.round(n/1000)+'k':'$'+Math.round(n);}
+function when(t){if(!t)return '<span class="muted">never</span>';
+ var d=new Date(t),days=Math.floor((Date.now()-d)/864e5);
+ return days<=0?'today':days===1?'yesterday':days+'d ago';}
+
+function api(path,opts){return fetch(BOT+path,opts).then(function(r){
+ return r.json().then(function(j){if(!r.ok)throw new Error(j.error||('failed ('+r.status+')'));return j;});});}
+function post(path,body){return api(path,{method:'POST',headers:{'Content-Type':'application/json'},
+ body:JSON.stringify(Object.assign({email:ME.email,code:ME.code},body||{}))});}
+
+/* ---------- sign in ---------- */
+function unlock(p){ME=p;try{localStorage.setItem(KEY,JSON.stringify(p));}catch(e){}
+ document.getElementById('gate').style.display='none';
+ document.getElementById('main').style.display='';
+ document.getElementById('orgname').textContent=(p.org&&p.org.name)||'';
+ load();}
+function gateFail(m){var e=document.getElementById('gerr');e.textContent=m;
+ var b=document.getElementById('ggo');b.disabled=false;b.textContent='Sign in';}
+
+(function(){
+ var saved=null;try{saved=JSON.parse(localStorage.getItem(KEY)||'null');}catch(e){}
+ if(saved&&saved.email&&saved.code){
+  document.getElementById('gemail').value=saved.email;
+  api('/auth/login',{method:'POST',headers:{'Content-Type':'application/json'},
+    body:JSON.stringify({email:saved.email,code:saved.code})})
+   .then(function(p){
+     // Only an admin has anything to do on this page; send everyone else to the map.
+     if(p.role!=='admin'){document.getElementById('gerr').textContent=
+       'That account is not an admin of '+((p.org&&p.org.name)||'this company')+'.';return;}
+     unlock({email:p.email,name:p.name,code:saved.code,role:p.role,org:p.org});})
+   .catch(function(){});
+ }
+})();
+
+document.getElementById('gform').addEventListener('submit',function(e){
+ e.preventDefault();
+ var b=document.getElementById('ggo');b.disabled=true;b.textContent='Working…';
+ document.getElementById('gerr').textContent='';
+ var em=document.getElementById('gemail').value.trim().toLowerCase();
+ var cd=document.getElementById('gcode').value.trim().toUpperCase();
+ api('/auth/login',{method:'POST',headers:{'Content-Type':'application/json'},
+   body:JSON.stringify({email:em,code:cd})})
+  .then(function(p){
+    if(p.role!=='admin')return gateFail('That account is not an admin — the map is at the link above.');
+    unlock({email:p.email,name:p.name,code:cd,role:p.role,org:p.org});})
+  .catch(function(x){gateFail(x.message);});
+});
+document.getElementById('signout').onclick=function(){
+ try{localStorage.removeItem(KEY);}catch(e){}
+ location.reload();};
+
+/* ---------- load + render ---------- */
+function load(){
+ return api('/org/stats?email='+encodeURIComponent(ME.email)+'&code='+encodeURIComponent(ME.code))
+  .then(function(j){STATS=j;renderAll();})
+  .catch(function(e){document.getElementById('upmsg').className='msg err';
+   document.getElementById('upmsg').textContent=e.message;});}
+
+function renderAll(){renderUsage();renderSales();renderTeam();renderRoutes();}
+
+function renderUsage(){
+ var s=STATS,active=s.users.filter(function(u){return u.seen;}).length;
+ var savedR=s.users.reduce(function(a,u){return a+u.savedRoutes;},0);
+ var savedF=s.users.reduce(function(a,u){return a+u.savedFilters;},0);
+ document.getElementById('usagesub').innerHTML='Company created '+(s.org.created?esc(s.org.created.slice(0,10)):'—')
+  +(s.org.brands.length?' · brands: <b>'+esc(s.org.brands.join(', '))+'</b>':' · <span class="muted">no brands set</span>');
+ document.getElementById('kpis').innerHTML=[
+  ['People',s.users.length,active+' have signed in'],
+  ['Routes built',s.routeCount,'handed to Maps or exported'],
+  ['Saved routes',savedR,'across the team'],
+  ['Saved filters',savedF,'across the team'],
+  ['Your accounts',s.sales?s.sales.matched:0,s.sales?'matched to doors':'nothing uploaded'],
+  ['Their value',s.sales&&s.sales.overall?money(s.sales.overall.rev):'—','in your upload'],
+ ].map(function(k){return '<div class="kpi"><b>'+esc(k[1])+'</b><span>'+esc(k[0])+' · '+esc(k[2])+'</span></div>';}).join('');}
+
+function renderSales(){
+ var s=STATS.sales,el=document.getElementById('salesdetail');
+ if(!s){el.innerHTML='<div class="warn">Nothing uploaded yet. Until you do, everyone in this company sees the market baseline only — '
+   +'store rank, category mix and momentum. <b>Who you already sell is private data and cannot come from the market.</b></div>';return;}
+ var rows=(s.top||[]).map(function(a){
+  return '<tr><td>'+esc(a.name)+'</td><td class="n">'+money(a.rev)+'</td><td class="n">'+(a.orders||'<span class="muted">—</span>')
+   +'</td><td class="n">'+(a.last?esc(a.last):'<span class="muted">no date</span>')+'</td></tr>';}).join('');
+ el.innerHTML='<div class="row" style="margin:12px 0 6px"><span class="tag live">current</span>'
+  +'<b>'+esc(s.filename||'upload')+'</b>'+(s.sheet?' <span class="muted">· sheet “'+esc(s.sheet)+'”</span>':'')
+  +' <span class="muted">· '+when(s.uploadedAt)+' by '+esc(s.uploadedBy||'')+'</span></div>'
+  +'<div class="kpis" style="margin:10px 0">'
+   +'<div class="kpi"><b>'+esc(s.matched)+'</b><span>doors matched</span></div>'
+   +'<div class="kpi"><b>'+(s.rows?esc(s.rows.toLocaleString()):'—')+'</b><span>rows read</span></div>'
+   +'<div class="kpi"><b>'+(s.overall?money(s.overall.rev):'—')+'</b><span>total value</span></div>'
+   +'<div class="kpi"><b>'+((s.overall&&s.overall.orders)||'—')+'</b><span>orders</span></div></div>'
+  +(s.unmatched&&s.unmatched.length
+    ?'<div class="warn"><b>'+s.unmatched.length+' name'+(s.unmatched.length===1?'':'s')+' could not be matched to a licensed dispensary</b> — '
+     +'usually a distributor, a closed door, or a location not on the map:<br><span class="muted">'
+     +esc(s.unmatched.slice(0,12).join(' · '))+(s.unmatched.length>12?' …':'')+'</span></div>':'')
+  +(rows?'<table style="margin-top:12px"><tr><th>Top accounts</th><th class="n">Value</th><th class="n">Orders</th><th class="n">Last order</th></tr>'+rows+'</table>':'');}
+
+function renderTeam(){
+ document.getElementById('team').innerHTML='<table><tr><th>Name</th><th>Role</th><th>Last seen</th>'
+  +'<th class="n">Saved routes</th><th class="n">Saved filters</th></tr>'
+  +STATS.users.map(function(u){
+   return '<tr><td><b>'+esc(u.name)+'</b><br><span class="muted">'+esc(u.email)+'</span></td>'
+    +'<td><span class="tag '+(u.role==='admin'?'admin':'member')+'">'+esc(u.role)+'</span>'
+    +(u.pending?' <span class="tag pend">invited</span>':'')+'</td>'
+    +'<td>'+when(u.seen)+'</td><td class="n">'+u.savedRoutes+'</td><td class="n">'+u.savedFilters+'</td></tr>';}).join('')
+  +'</table>';}
+
+function renderRoutes(){
+ var r=STATS.routes||[];
+ if(!r.length){document.getElementById('routes').innerHTML='<div class="muted">No routes built yet.</div>';return;}
+ document.getElementById('routes').innerHTML='<table><tr><th>When</th><th>Rep</th><th>Route</th>'
+  +'<th class="n">Stops</th><th class="n">Miles</th></tr>'
+  +r.map(function(x){
+   return '<tr><td>'+when(x.ts)+'</td><td>'+esc(x.by||'')+'</td>'
+    +'<td>'+esc((x.start||'?')+' → '+((x.names||[]).slice(0,3).join(', '))+((x.names||[]).length>3?' …':'')+(x.end?' → '+x.end:''))+'</td>'
+    +'<td class="n">'+(x.stops||0)+'</td><td class="n">'+(x.miles||0)+'</td></tr>';}).join('')+'</table>';}
+
+/* ---------- upload ---------- */
+var drop=document.getElementById('drop'), file=document.getElementById('file'), msg=document.getElementById('upmsg');
+drop.onclick=function(){file.click();};
+['dragenter','dragover'].forEach(function(ev){drop.addEventListener(ev,function(e){
+ e.preventDefault();drop.classList.add('over');});});
+['dragleave','drop'].forEach(function(ev){drop.addEventListener(ev,function(e){
+ e.preventDefault();drop.classList.remove('over');});});
+drop.addEventListener('drop',function(e){
+ if(e.dataTransfer.files&&e.dataTransfer.files[0])send(e.dataTransfer.files[0]);});
+file.onchange=function(){if(file.files&&file.files[0])send(file.files[0]);file.value='';};
+
+function send(f){
+ msg.className='msg';msg.textContent='Reading '+f.name+'…';
+ var book=/\.xlsx?$/i.test(f.name);
+ var fr=new FileReader();
+ fr.onerror=function(){msg.className='msg err';msg.textContent='Could not read that file.';};
+ fr.onload=function(){
+  msg.textContent='Matching your stores to licensed dispensaries… this takes a few seconds.';
+  var payload={filename:f.name};
+  if(book){
+   var b=new Uint8Array(fr.result),s='';
+   for(var i=0;i<b.length;i+=0x8000)s+=String.fromCharCode.apply(null,b.subarray(i,i+0x8000));
+   payload.xlsx=btoa(s);
+  } else payload.csv=String(fr.result);
+  post('/org/sales',payload)
+   .then(function(j){
+     msg.className='msg ok';
+     msg.textContent='Matched '+j.matched+' accounts from '+(j.rows||0).toLocaleString()+' rows'
+       +(j.sheet?' on the “'+j.sheet+'” sheet':'')+'.';
+     return load();})
+   .catch(function(e){msg.className='msg err';msg.textContent=e.message;});};
+ if(book)fr.readAsArrayBuffer(f);else fr.readAsText(f);}
+
+/* ---------- team actions ---------- */
+document.getElementById('adduser').onclick=function(){
+ var em=prompt('Email of the person to add:');if(!em)return;
+ var nm=prompt('Their name:')||'';
+ var role=confirm('Make them an admin?\n\nOK = admin (can upload data and add people)\nCancel = regular user')?'admin':'member';
+ post('/org/users/add',{newEmail:em.trim(),newName:nm.trim(),role:role})
+  .then(function(j){
+    alert(j.mailed?(j.user.name+' has been emailed a link to sign in.')
+      :('Added '+j.user.name+', but the invite email did not send'+(j.mailError?' ('+j.mailError+')':'')
+        +'.\n\nSend them this link:\n\n'+j.link));
+    return load();})
+  .catch(function(e){alert(e.message);});};
+
+document.getElementById('editbrands').onclick=function(){
+ var cur=(STATS.org.brands||[]).join(', ');
+ var v=prompt('Which brands does '+STATS.org.name+' sell?\n\nComma separated. These become the one-tap filters on the map.',cur);
+ if(v===null)return;
+ post('/org/brands',{brands:v.split(',').map(function(x){return x.trim();}).filter(Boolean)})
+  .then(load).catch(function(e){alert(e.message);});};
+</script></body></html>

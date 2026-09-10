@@ -28,6 +28,7 @@ label.tog{white-space:nowrap}
 .acod.w2{background:#fdf4e3;border-color:#efd69c;color:#7a4f06}
 .acod.w1{background:#f2f4f6;border-color:#d8dde3;color:#4b535d}
 .frow{margin:7px 0}.frow b{display:block;font-size:10px;text-transform:uppercase;color:#777;letter-spacing:.5px;margin-bottom:4px}
+.chip.off{background:#f4f5f4!important;color:#b3bbb4!important;border-color:#e2e6e2!important;cursor:not-allowed}
 .chip{display:inline-block;padding:3px 8px;margin:2px 3px 2px 0;border:1px solid #ccc;border-radius:20px;cursor:pointer;background:#fff;user-select:none;font-size:11px}
 .chip.on{color:#fff;border-color:transparent}
 label.tog{display:inline-flex;align-items:center;gap:5px;font-size:12px;cursor:pointer}
@@ -439,6 +440,7 @@ window.PROFILE=null;
 <div class="frow" id="adminrow" style="display:none"><b>Company <span style="font-weight:400;color:#888" id="orgname"></span></b>
  <div id="salesstate" style="font-size:11px;color:#5a6b5e;background:#f0f5f1;border-radius:8px;padding:8px 10px;margin-top:5px"></div>
  <div style="display:flex;gap:5px;margin-top:6px">
+  <a href="./admin.html" id="adminlink" style="flex:1;padding:7px;border:1px solid var(--gold);background:#fffdf5;color:#8a6d1f;border-radius:6px;font-weight:700;cursor:pointer;font-size:11.5px;text-align:center;text-decoration:none">⚙️ Admin</a>
   <button id="upsales" style="flex:1;padding:7px;border:1px solid #1f7a44;background:#1f7a44;color:#fff;border-radius:6px;font-weight:700;cursor:pointer;font-size:11.5px">📈 Upload sales</button>
   <button id="adduser" style="flex:1;padding:7px;border:1px solid #ccc;background:#fff;border-radius:6px;font-weight:700;cursor:pointer;font-size:11.5px">👥 Add people</button></div>
  <div style="margin-top:5px"><button id="editbrands" style="width:100%;padding:6px;border:1px solid #ccc;background:#fff;border-radius:6px;cursor:pointer;font-size:11px">🏷️ Brands we sell</button></div>
@@ -1182,7 +1184,7 @@ function routePayload(channel){return {rep:repName(),channel:channel||'gmaps',ts
   stops:route.map(function(d,i){return {order:i+1,name:d.n,lic:d.lic||'',addr:d.a||'',city:d.c||'',county:d.co||'',region:d.rg||'',role:d.role||'',dec:(d.dec==null?null:d.dec),lat:d.lat,lng:d.lng};})};}
 function logRoute(channel){var p=routePayload(channel);
  try{var h=JSON.parse(localStorage.getItem('jbd_route_log')||'[]');h.unshift(p);localStorage.setItem('jbd_route_log',JSON.stringify(h.slice(0,200)));}catch(e){}
- try{fetch(BOT_URL+'/route-log',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(p)}).catch(function(){});}catch(e){}
+ try{fetch(BOT_URL+'/route-log',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(Object.assign({},p,{email:(window.PROFILE||{}).email,code:(window.PROFILE||{}).code}))}).catch(function(){});}catch(e){}
  return p;}
 
 /* ===== HubSpot Companies CSV export (+ logs a visit per stop) ===== */
@@ -1767,6 +1769,18 @@ function paintRoleChips(){
  activeRoles=keep.size?keep:new Set(live);
  el.innerHTML='';
  chips(el,live,activeRoles,rl);
+ // The rest of the standard set stays on screen, greyed: a rep should be able to see
+ // that Lapsed exists and what would switch it on, rather than wonder why it is missing.
+ var shown={};live.forEach(function(r){shown[r]=1;});
+ ROLES.forEach(function(r){
+  if(shown[r])return;
+  if(r==='Customer'&&live.indexOf('Active')>=0)return;   // covered by the dated tiers
+  var c=document.createElement('span');
+  c.className='chip off';c.textContent=rl(r);
+  c.title=ORGSALES
+   ?'No door in your sales data is '+rl(r).toLowerCase()+(r==='Lapsed'||r==='Slipping'||r==='Active'?' — your upload has no order dates':'')
+   :'Upload your company\u2019s sales to switch this on — who you already sell cannot come from market data';
+  el.appendChild(c);});
  var note=document.getElementById('rolenote');
  if(!note)return;
  if(!ORGSALES)note.innerHTML='Everything is a prospect until your company\u2019s sales are uploaded \u2014 <b>who you already sell is private data</b>, it cannot come from the market.';
