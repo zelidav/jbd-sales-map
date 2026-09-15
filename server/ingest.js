@@ -260,10 +260,38 @@ ${list}`,
   });
   const block = res.content.find((b) => b.type === 'tool_use');
   if (!block) return {};
-  const valid = new Set(doors.map((d) => d.lic).filter(Boolean));
+  const valid = new Map(doors.filter((d) => d.lic).map((d) => [d.lic, d]));
   const out = {};
   for (const m of block.input.matches || []) {
     if (m.license && valid.has(m.license)) out[m.name] = m.license;
+  }
+
+  // A door is one physical location, so two different store names in one export cannot
+  // both be it. The model still does this on sibling names that share a banner -- "The
+  // Unit Powered by Indoor Treez" landed on "Strains for Life Powered by Indoor Treez",
+  // moving $4,545 onto a door nobody sold. Keep only the closest name and drop the rest:
+  // an unmatched row is recoverable, revenue on the wrong door is not.
+  const norm = (x) => String(x || '').toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim();
+  const words = (x) => new Set(norm(x).split(' ').filter(Boolean));
+  const byLicence = new Map();
+  for (const [name, lic] of Object.entries(out)) {
+    if (!byLicence.has(lic)) byLicence.set(lic, []);
+    byLicence.get(lic).push(name);
+  }
+  for (const [lic, names] of byLicence) {
+    if (names.length < 2) continue;
+    const d = valid.get(lic);
+    const cand = [d.n, ...(d.also || [])].map(words);
+    const score = (n) => {
+      const w = words(n);
+      return Math.max(...cand.map((c) => {
+        const hit = [...w].filter((t) => c.has(t)).length;
+        return hit / Math.max(w.size, c.size, 1);
+      }));
+    };
+    const best = names.slice().sort((a, b) => score(b) - score(a))[0];
+    for (const n of names) if (n !== best) delete out[n];
+    console.warn(`matchNames: ${names.length} names claimed ${lic}; kept "${best}", dropped ${names.filter((n) => n !== best).map((n) => `"${n}"`).join(', ')}`);
   }
   return out;
 }

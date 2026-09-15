@@ -655,7 +655,11 @@ app.post('/org/sales', async (req, res) => {
     if ((isBook ? b.xlsx.length : b.csv.length) > 16e6) {
       return res.status(413).json({ error: 'that file is too big — export a narrower date range' });
     }
-    const doors = ACCOUNTS.map((d) => ({ n: d.n, c: d.c, lic: d.lic }));
+    // The matcher needs the street address to tell twenty-four identically named
+    // chain doors apart, and the trade names because a seller writes 'Rockland
+    // Cannabis Dispensary' where OCM records '296 Retail Venture LLC'. Projecting
+    // to n/c/lic threw both away and silently disabled the matching it was given.
+    const doors = ACCOUNTS.map((d) => ({ n: d.n, c: d.c, co: d.co, a: d.a, lic: d.lic, also: d.also }));
     const out = await ingest(isBook ? { workbook: Buffer.from(b.xlsx, 'base64') } : b.csv, doors);
     const saved = await orgs.putSales(creds(b), { ...out, filename: String(b.filename || '').slice(0, 200) });
     res.json({
