@@ -9,3 +9,6 @@ tools/pistil/*.log
 # Raw exports and order data live outside the repo
 data/dragonfly_orders.csv
 *.xlsx
+_mtest.mjs
+tools/pistil/_tok*
+tools/pistil/_token.txt
