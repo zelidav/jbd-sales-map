@@ -30,20 +30,28 @@ const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
 /** Lift a live bearer token out of the signed-in browser. */
 async function getToken() {
-  const b = await puppeteer.connect({ browserURL: 'http://127.0.0.1:9222', defaultViewport: null, protocolTimeout: 180000 });
-  const p = await b.newPage();
+  // Prefer a token captured from the tab the user already has open. Opening a fresh page
+  // and navigating cold times out: the app is a heavy SPA and re-auth on a new tab can
+  // exceed any reasonable navigation budget, while the live tab is already signed in.
+  if (fs.existsSync('_token.txt')) {
+    const t = fs.readFileSync('_token.txt', 'utf8').trim();
+    if (t) return t;
+  }
+  const b = await puppeteer.connect({ browserURL: 'http://127.0.0.1:9222', defaultViewport: null, protocolTimeout: 240000 });
+  const pages = await b.pages();
+  const p = pages.find((x) => /app\.pistildata\.com/.test(x.url()));
+  if (!p) throw new Error('no Pistil tab open — sign in at app.pistildata.com first');
   let token = null;
   p.on('request', (r) => {
     const a = r.headers()['authorization'];
     if (a && /pistildata/.test(r.url()) && !token) token = a;
   });
-  await p.goto('https://app.pistildata.com/market-intelligence/rankings', { waitUntil: 'domcontentloaded', timeout: 90000 });
-  for (let i = 0; i < 30 && !token; i++) await sleep(1000);
-  await p.close();
-  b.disconnect();
+  try { await p.reload({ waitUntil: 'domcontentloaded', timeout: 120000 }); } catch (e) { /* the listener is what matters */ }
+  for (let i = 0; i < 40 && !token; i++) await sleep(1000);
   if (!token) throw new Error('no Authorization header seen — is the browser still signed in to Pistil?');
   return token;
 }
+
 
 function headers(token) {
   return {

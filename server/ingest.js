@@ -221,7 +221,12 @@ const MATCH_TOOL = {
 export async function matchNames(names, doors) {
   if (!names.length) return {};
   const list = doors.filter((d) => d.lic)
-    .map((d) => `${d.lic} | ${d.n} | ${d.c || ''}`).join('\n');
+    // The street address is the whole game for chains. Two dozen doors are all called
+    // "FlynnStoned Cannabis Company"; only the address distinguishes the one a seller
+    // wrote down as "Flynnstoned - Baytowne". Name+city alone forced a refusal on every
+    // multi-location brand, which is most of what a growing seller actually sells to.
+    .map((d) => `${d.lic} | ${d.n} | ${[d.a, d.c, d.co].filter(Boolean).join(', ')}`)
+    .join('\n');
   const res = await anthropic.messages.create({
     model: MODEL,
     max_tokens: 8000,
@@ -234,14 +239,17 @@ export async function matchNames(names, doors) {
 Rules:
 - The licence you return MUST be copied from the list below. Never invent one.
 - Abbreviations, missing suffixes, a city in brackets, and misspellings are normal - match through them.
-- Two different locations of the same chain are DIFFERENT stores; use the city to choose, and return null if the export does not say which one.
+- Two different locations of the same chain are DIFFERENT stores.
+- A seller almost always writes a chain location as "Brand - Somewhere". That suffix is a LOCATION, not part of the name: it may be a city, a borough, a neighbourhood, a street, a plaza, a mall or a landmark. Match it against the ADDRESS, city and county of the candidates, not against their names.
+  Worked examples: "Flynnstoned - Baytowne" is the Flynnstoned whose address is on Baytowne Plaza. "The Flowery - Veterans Road" is the Flowery whose address is on Veterans Road. "Rise - Halfmoon" is the RISE in the town of Halfmoon.
+- If several candidates share a name and the export gives no locator at all, return null.
 - Return null rather than guessing. A wrong match puts a company's revenue against the wrong door.
 - Return one entry for every name given, in the same order.
 
 NAMES FROM THE EXPORT:
 ${names.map((n) => '- ' + n).join('\n')}
 
-LICENSED DISPENSARIES (licence | name | city):
+LICENSED DISPENSARIES (licence | name | street address, city, county):
 ${list}`,
     }],
   });
