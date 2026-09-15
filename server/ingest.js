@@ -225,7 +225,10 @@ export async function matchNames(names, doors) {
     // "FlynnStoned Cannabis Company"; only the address distinguishes the one a seller
     // wrote down as "Flynnstoned - Baytowne". Name+city alone forced a refusal on every
     // multi-location brand, which is most of what a growing seller actually sells to.
-    .map((d) => `${d.lic} | ${d.n} | ${[d.a, d.c, d.co].filter(Boolean).join(', ')}`)
+    // Sellers write the trade name; OCM records the licensee. "Rockland Cannabis
+    // Dispensary" is licensed as "296 Retail Venture LLC" and shares not one word with it,
+    // so any known trading names travel with the door.
+    .map((d) => `${d.lic} | ${d.n}${d.also && d.also.length ? ' (aka ' + d.also.join('; ') + ')' : ''} | ${[d.a, d.c, d.co].filter(Boolean).join(', ')}`)
     .join('\n');
   const res = await anthropic.messages.create({
     model: MODEL,
@@ -239,6 +242,8 @@ export async function matchNames(names, doors) {
 Rules:
 - The licence you return MUST be copied from the list below. Never invent one.
 - Abbreviations, missing suffixes, a city in brackets, and misspellings are normal - match through them.
+- A door is ALWAYS an individual location. One licence number = one physical address = one store. Chains, banners and management companies exist for roll-ups only; they are never a door and never an answer.
+- Never return the same licence for two different store names in the export unless they are genuinely the same address under an old and a new trading name. Two locations run by the same company are two stores, even when the export names them almost identically.
 - Two different locations of the same chain are DIFFERENT stores.
 - A seller almost always writes a chain location as "Brand - Somewhere". That suffix is a LOCATION, not part of the name: it may be a city, a borough, a neighbourhood, a street, a plaza, a mall or a landmark. Match it against the ADDRESS, city and county of the candidates, not against their names.
   Worked examples: "Flynnstoned - Baytowne" is the Flynnstoned whose address is on Baytowne Plaza. "The Flowery - Veterans Road" is the Flowery whose address is on Veterans Road. "Rise - Halfmoon" is the RISE in the town of Halfmoon.
@@ -355,7 +360,16 @@ export async function ingest(input, doors) {
   }
 
   // Pass 1, free: licence numbers, then exact and squashed name equality.
-  const byLic = new Map(doors.filter((d) => d.lic).map((d) => [d.lic.toUpperCase(), d.lic]));
+  // Other systems decorate the licence with their own suffix -- jbd-glass writes
+  // OCM-CAURD-25-000318-D1 for what OCM calls OCM-CAURD-25-000318. Comparing raw meant a
+  // file exported from one system never joined to a door sourced from the other, and the
+  // account came through as a stranger. Normalise both sides before comparing.
+  const bareLic = (x) => String(x || '').trim().toUpperCase().replace(/-D\d+$/, '');
+  const byLic = new Map();
+  for (const d of doors.filter((x) => x.lic)) {
+    byLic.set(d.lic.toUpperCase(), d.lic);
+    byLic.set(bareLic(d.lic), d.lic);
+  }
   const bySquash = new Map();
   for (const d of doors) {
     const k = squash(d.n);
@@ -371,6 +385,7 @@ export async function ingest(input, doors) {
     const key = rawLic + ' ' + rawName;
     if (resolved.has(key) || !rawName && !rawLic) continue;
     if (rawLic && byLic.has(rawLic)) { resolved.set(key, byLic.get(rawLic)); continue; }
+    if (rawLic && byLic.has(bareLic(rawLic))) { resolved.set(key, byLic.get(bareLic(rawLic))); continue; }
     const sq = squash(rawName);
     if (sq && bySquash.has(sq) && bySquash.get(sq)) { resolved.set(key, bySquash.get(sq)); continue; }
     if (rawName) unresolved.add(rawName);
