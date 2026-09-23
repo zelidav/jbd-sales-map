@@ -603,6 +603,7 @@ function cl(c){return CATLBL[c]||c;}
 var TIERS=["Value","Mid","Prem"], QUALS=["H","M","L"];
 var QUALLBL={H:"High",M:"Mid",L:"Low"};
 var REGIONS=[...new Set(DATA.map(d=>d.rg).filter(Boolean))].sort();
+var ROLE_OFFERED=null;
 var activeRoles=new Set(ROLES), activeRegions=new Set(REGIONS), q="", topOnly=false, rankOn=false, rankN=50, rankSort=false, accelOnly=false, prosOnly=false, prioOnly=false, codFilter="";
 // product-led targeting state — empty set means "no constraint", not "none"
 var activeCats=new Set(), activeTiers=new Set(), activeQual=new Set(), sellBrand="", carriage="", minCatVol=0;
@@ -1832,6 +1833,12 @@ function paintRoleChips(){
  // Drop any selection that no longer exists, or the filter silently hides everything.
  var keep=new Set();activeRoles.forEach(function(r){if(live.indexOf(r)>=0)keep.add(r);});
  activeRoles=keep.size?keep:new Set(live);
+ // A role that has only just become available was never deselected by the rep -- it did
+ // not exist to deselect. This paints once before the company's sales arrive, when the
+ // only live role is Prospect; without this the selection stays pinned to Prospect after
+ // the sales land, every customer door vanishes, and all four chips still read as ON.
+ ROLE_OFFERED=ROLE_OFFERED||new Set();
+ live.forEach(function(r){ if(!ROLE_OFFERED.has(r)){ ROLE_OFFERED.add(r); activeRoles.add(r); } });
  el.innerHTML='';
  chips(el,live,activeRoles,rl);
  // The rest of the standard set stays on screen, greyed: a rep should be able to see

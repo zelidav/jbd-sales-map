@@ -40,9 +40,9 @@ gcloud run deploy "$SERVICE" \
   --region "$REGION" \
   --source . \
   --allow-unauthenticated \
-  --memory 512Mi \
+  --memory 2Gi \
   --cpu 1 \
-  --timeout 300 \
+  --timeout 600 \
   --concurrency 40 \
   --max-instances 3 \
   --set-env-vars "BOT_MODEL=${BOT_MODEL},ALLOWED_ORIGIN=${ALLOWED_ORIGIN},PROFILE_BUCKET=${PROFILE_BUCKET},SIGNUP_CODE=${SIGNUP_CODE},APP_URL=${APP_URL}" \

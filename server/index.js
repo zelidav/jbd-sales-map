@@ -652,7 +652,10 @@ app.post('/org/sales', async (req, res) => {
     if (!isBook && (typeof b.csv !== 'string' || !b.csv.trim())) {
       return res.status(400).json({ error: 'send the file as text in "csv" or base64 in "xlsx"' });
     }
-    if ((isBook ? b.xlsx.length : b.csv.length) > 16e6) {
+    // Cloud Run accepts 32MB; only the header and a few sample rows ever reach the
+    // model, so size costs transport and parsing, not tokens. 16MB turned away a
+    // normal line-item export: one brand, 17 months, 22k lines is already 18MB.
+    if ((isBook ? b.xlsx.length : b.csv.length) > 26e6) {
       return res.status(413).json({ error: 'that file is too big — export a narrower date range' });
     }
     // The matcher needs the street address to tell twenty-four identically named
