@@ -171,6 +171,12 @@ export async function mapColumns(header, rows) {
       content: `A wholesale seller exported their own sales. Say which column is which.
 Return header names EXACTLY as given, or null when the file has no such column.
 
+For "amount", if this is a line-item file (several rows per order), pick the LINE-level
+money column, not the order-level one. Order totals repeat identically on every line of
+the order, so summing them multiplies the file by the number of lines per order. Prefer a
+header like "Line item subtotal" over "Order total" or "Order subtotal". Pick a gross
+sales figure over cash received: "collected"/"received"/"paid" is AR, not sales.
+
 HEADERS: ${header.join(' | ')}
 
 SAMPLE ROWS:
@@ -312,6 +318,32 @@ export function aggregate(header, rows, cols, licFor) {
   const overall = { rev: 0, orders: counted ? 0 : new Set(), mo: {}, top: {} };
   let unmatchedRows = 0;
 
+  // Is the amount column order-level or line-level? Decide by measurement, not by the
+  // column's name, because the mapper is free to pick either on any given run and has
+  // picked the wrong one: on a 7,363-row Dragonfly export it chose "Order total", which
+  // repeats on all 11 lines of an order, and the file footed to $103M instead of $6.6M.
+  // An order-level figure is constant across every row sharing an order id; a line-level
+  // one varies. If it never varies in any multi-row order, count it once per order.
+  let orderLevelAmount = false;
+  if (idx.amount >= 0 && idx.order_id >= 0) {
+    const seen = new Map();
+    let multi = 0, varies = 0;
+    for (const r of rows) {
+      const k = String(r[idx.order_id] || '').trim();
+      if (!k) continue;
+      const v = num(r[idx.amount]);
+      if (!seen.has(k)) { seen.set(k, { v, n: 1, varies: false }); continue; }
+      const g = seen.get(k);
+      g.n++;
+      if (Math.abs(g.v - v) > 0.005) g.varies = true;
+    }
+    for (const g of seen.values()) {
+      if (g.n > 1) { multi++; if (g.varies) varies++; }
+    }
+    orderLevelAmount = multi >= 5 && varies === 0;
+  }
+  const countedOrders = new Set();
+
   for (const r of rows) {
     const rawName = idx.store >= 0 ? String(r[idx.store] || '').trim() : '';
     const rawLic = idx.license >= 0 ? String(r[idx.license] || '').trim() : '';
@@ -323,18 +355,23 @@ export function aggregate(header, rows, cols, licFor) {
     const ord = idx.order_id >= 0 ? String(r[idx.order_id] || '').trim() : (when || '');
 
     const cnt = counted ? Math.round(num(r[idx.order_count])) : 0;
-    overall.rev += amt;
+    // One order's total must land once, not once per line.
+    const firstOfOrder = !orderLevelAmount || (ord && !countedOrders.has(ord));
+    if (orderLevelAmount && ord) countedOrders.add(ord);
+    const rev = firstOfOrder ? amt : 0;
+    overall.rev += rev;
     if (counted) overall.orders += cnt; else if (ord) overall.orders.add(ord);
-    if (month) overall.mo[month] = (overall.mo[month] || 0) + amt;
-    if (prod) overall.top[prod] = (overall.top[prod] || 0) + amt;
+    if (month) overall.mo[month] = (overall.mo[month] || 0) + rev;
+    // An order-level amount cannot be attributed to one product on the line.
+    if (prod && !orderLevelAmount) overall.top[prod] = (overall.top[prod] || 0) + amt;
 
     if (!lic) { unmatchedRows++; continue; }
     const a = accounts[lic] || (accounts[lic] = { name: rawName, rev: 0, orders: counted ? 0 : new Set(), last: null, mo: {}, top: {} });
-    a.rev += amt;
+    a.rev += rev;
     if (counted) a.orders += cnt; else if (ord) a.orders.add(ord);
     if (when && (!a.last || when > a.last)) a.last = when;
-    if (month) a.mo[month] = (a.mo[month] || 0) + amt;
-    if (prod) a.top[prod] = (a.top[prod] || 0) + amt;
+    if (month) a.mo[month] = (a.mo[month] || 0) + rev;
+    if (prod && !orderLevelAmount) a.top[prod] = (a.top[prod] || 0) + amt;
   }
 
   const topList = (o) => Object.entries(o).sort((x, y) => y[1] - x[1]).slice(0, 5)
