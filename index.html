@@ -343,6 +343,15 @@ label.tog{display:inline-flex;align-items:center;gap:5px;font-size:12px;cursor:p
  font-size:11.5px;line-height:1.5;color:#41484d;border-radius:0 3px 3px 0}
 .areab b{color:#22282c}
 .areab .est{color:#6b7075;font-size:11px}
+.pcats{display:flex;flex-wrap:wrap;gap:6px;margin-top:2px}
+.pcats .pc{
+  display:inline-flex;align-items:center;gap:6px;cursor:pointer;user-select:none;
+  border:1px solid #cfd8d1;border-radius:999px;padding:5px 11px 5px 8px;
+  font-size:13px;line-height:1;background:#fff;color:#333;
+}
+.pcats .pc.on{background:#14241a;border-color:#14241a;color:#fff}
+.pcats .pc input{width:13px;height:13px;margin:0;accent-color:#1f7a44;pointer-events:none}
+.pcats .pc.any{font-style:italic}
 </style></head><body>
 <!-- ACCESS GATE -->
 <div id="gate" style="position:fixed;inset:0;z-index:99999;background:#14241a;display:flex;align-items:center;justify-content:center;padding:20px;">
@@ -534,7 +543,7 @@ window.PROFILE=null;
  <div id="planbody">
   <div id="plancount"></div>
   <div class="pf"><label for="pcat">What are you selling</label>
-   <select id="pcat"></select>
+   <div id="pcats" class="pcats"></div>
    <div class="hint">Stops are ranked by the dollars each door moves in this category.</div></div>
   <div class="pf"><label for="pstart">Starting from</label>
    <div class="two"><input id="pstart" type="text" placeholder="Address, city, or depot"/><button type="button" class="pmini" id="ploc">📍 Me</button></div></div>
@@ -1672,14 +1681,29 @@ function renderTripBar(trip,active,missing){
    Selection is value per mile of detour, not raw value: a $200k door an hour off the
    road costs more day than it is worth, and picking purely by dollars produced
    exactly that. Sequencing is left to the existing optimiser. */
-function planCandidates(cat){
+function planCandidates(cats){
  return visible().filter(function(d){
   if(!d.lat||!d.lng)return false;
-  if(!cat)return true;
-  return d.cat&&d.cat[cat]&&d.cat[cat].v>0;});}
-function planValue(d,cat){
- if(cat)return (d.cat&&d.cat[cat]&&d.cat[cat].v)||0;
- var t=0;for(var c in (d.cat||{}))t+=d.cat[c].v||0;return t;}
+  if(!cats||!cats.size)return true;
+  // any one of the ticked products selling here is enough to make the door worth a stop
+  var ok=false;cats.forEach(function(c){if(d.cat&&d.cat[c]&&d.cat[c].v>0)ok=true;});
+  return ok;});}
+var planCats=new Set();
+/* The door's value for this trip, and WHICH product earned it.
+
+   With nothing ticked this is total store volume. With one or more ticked it is the
+   single best of them -- never the sum. A rep carrying flower and vapes wants the door
+   where one of those moves hardest, not the door that is mediocre at both. */
+function planBest(d,cats){
+ var best=0,who=null;
+ if(!cats||!cats.size){
+  var t=0;for(var c in (d.cat||{}))t+=d.cat[c].v||0;
+  return {v:t,cat:null};}
+ cats.forEach(function(c){
+  var v=(d.cat&&d.cat[c]&&d.cat[c].v)||0;
+  if(v>best){best=v;who=c;}});
+ return {v:best,cat:who};}
+function planValue(d,cats){return planBest(d,cats).v;}
 function planPick(cands,cat,start,end,maxStops){
  // hav() returns KILOMETRES. Everything the rep sees is miles, so convert once here
  // rather than letting the two units meet somewhere in the middle of the scoring.
@@ -1697,27 +1721,41 @@ function planPick(cands,cat,start,end,maxStops){
  scored.sort(function(a,b){return b.score-a.score;});
  return scored.slice(0,maxStops).map(function(x){return x.d;});}
 function openPlan(){
- var sel=document.getElementById('pcat');
- if(!sel.options.length){
-  sel.innerHTML='<option value="">Anything — rank by total store volume</option>'
-   +CATS_BY_SIZE.map(function(c){return '<option value="'+c+'">'+cl(c)+'</option>';}).join('');
-  if(activeCats.size){var first=null;activeCats.forEach(function(c){if(!first)first=c;});sel.value=first;}
+ var box=document.getElementById('pcats');
+ if(!box.dataset.built){
+  box.dataset.built='1';
+  // Seed from whatever the rep already filtered the map to: they have usually said what
+  // they sell once already, and asking twice is the kind of admin this app exists to remove.
+  activeCats.forEach(function(c){planCats.add(c);});
+  CATS_BY_SIZE.forEach(function(c){
+   var on=planCats.has(c);
+   var el=document.createElement('label');
+   el.className='pc'+(on?' on':'');
+   el.innerHTML='<input type="checkbox"'+(on?' checked':'')+'><span>'+cl(c)+'</span>';
+   el.onclick=function(e){
+    e.preventDefault();
+    var cb=el.querySelector('input');
+    if(planCats.has(c)){planCats.delete(c);cb.checked=false;el.classList.remove('on');}
+    else{planCats.add(c);cb.checked=true;el.classList.add('on');}
+    paintPlanCount();};
+   box.appendChild(el);});
  }
  if(startPt&&!document.getElementById('pstart').value)document.getElementById('pstart').value=startPt.label;
  document.getElementById('pdwell').value=dwellMin;
- var n=planCandidates(sel.value).length;
- document.getElementById('plancount').innerHTML='Planning from <b>'+n+'</b> door'+(n===1?'':'s')
-  +' currently shown by your filters. Change the filters to widen or narrow that.';
+ paintPlanCount();
  document.getElementById('planerr').textContent='';
  document.getElementById('planwrap').classList.add('open');}
 function closePlan(){document.getElementById('planwrap').classList.remove('open');}
 document.getElementById('planbtn').onclick=openPlan;
 document.getElementById('planx').onclick=closePlan;
 document.getElementById('planwrap').addEventListener('click',function(e){if(e.target===this)closePlan();});
-document.getElementById('pcat').onchange=function(){
- var n=planCandidates(this.value).length;
+function paintPlanCount(){
+ var n=planCandidates(planCats).length;
+ var what=planCats.size
+  ?('ranked by the best of '+Array.from(planCats).map(cl).join(', '))
+  :'ranked by total store volume';
  document.getElementById('plancount').innerHTML='Planning from <b>'+n+'</b> door'+(n===1?'':'s')
-  +' currently shown by your filters. Change the filters to widen or narrow that.';};
+  +' currently shown by your filters, '+what+'.';}
 document.getElementById('ploc').onclick=function(){
  if(!navigator.geolocation){document.getElementById('planerr').textContent='Location is not available on this device.';return;}
  var b=this,old=b.textContent;b.textContent='…';b.disabled=true;
@@ -1737,7 +1775,7 @@ function planPoint(txt){
  return geocodeP(txt);}
 document.getElementById('plango').onclick=function(){
  var btn=this,err=document.getElementById('planerr');
- var cat=document.getElementById('pcat').value;
+ var cat=planCats;
  var startTxt=document.getElementById('pstart').value.trim();
  var endTxt=document.getElementById('pend').value.trim();
  var maxStops=Math.max(1,Math.min(15,+document.getElementById('pmax').value||8));
