@@ -131,11 +131,7 @@ await hold(3200);
 // ── 2. the doors worth saving ────────────────────────────────────────────────
 await caption('The ones that stopped ordering are the whole point.',
               'Save it');
-await page.evaluate(() => {
-  const q = document.getElementById('q');
-  if (q) { q.value = 'NugHub'; q.dispatchEvent(new Event('input', { bubbles: true })); }
-});
-await hold(2600);
+await hold(1800);
 
 await page.evaluate(async () => {
   const LIC = 'OCM-CAURD-24-000183';                 // NugHub NY, quiet 63 days
@@ -155,8 +151,6 @@ await hold(3200);
 
 // ── 3. plan the day ──────────────────────────────────────────────────────────
 await page.evaluate(() => {
-  const q = document.getElementById('q');
-  if (q) { q.value = ''; q.dispatchEvent(new Event('input', { bubbles: true })); }
   const b = document.getElementById('planbtn'); if (b) b.click();
 });
 await caption('Five fields. Where you start, what you sell, how many stops.',
